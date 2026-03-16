@@ -88,6 +88,12 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 STATIC_URL = 'static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')] # Si tienes una carpeta static propia
+# settings.py
+
+# ... (debajo de STATIC_URL)
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+
+
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 LANGUAGE_CODE = 'es-co'
