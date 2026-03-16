@@ -33,11 +33,8 @@ def _descargar_plantilla(url: str) -> BytesIO:
     with urllib.request.urlopen(url, timeout=30) as resp:
         return BytesIO(resp.read())
 
-# Mantener rutas locales como fallback (para desarrollo local)
+# Rutas locales (solo usadas internamente, no se leen en runtime)
 _HERE = os.path.dirname(os.path.abspath(__file__))
-MEDIA = os.path.join(_HERE, '..', 'media')
-TPL_S = os.path.join(MEDIA, 'plantilla_plano_santander.xlsm')
-TPL_B = os.path.join(MEDIA, 'plantilla_plano_bancolombia.xlsx')
 
 # ── Tipo de documento ────────────────────────────────────────────────────────
 # Santander usa el texto completo; Bancolombia usa el número entero
@@ -466,8 +463,7 @@ def generar_santander(datos, referencia=''):
 
     # Cargar plantilla desde GitHub Raw (compatible con Vercel)
     _cargar_assets_santander()  # asegura que los assets estén en caché
-    _tpl_s = _descargar_plantilla(TPL_S_URL) if not os.path.exists(TPL_S) else TPL_S
-    wb = load_workbook(_tpl_s, keep_vba=True)
+    wb = load_workbook(_descargar_plantilla(TPL_S_URL), keep_vba=True)
     ws = wb['GENERAR ARCHIVO - GENERATE FILE']
 
     # Limpiar datos existentes desde fila 6 (cols A-L)
@@ -609,8 +605,7 @@ def generar_bancolombia(datos, hdr):
         fecha_int = int(datetime.today().strftime('%d%m%Y'))
 
     # Cargar plantilla desde GitHub Raw (compatible con Vercel)
-    _tpl_b = _descargar_plantilla(TPL_B_URL) if not os.path.exists(TPL_B) else TPL_B
-    wb = load_workbook(_tpl_b)
+    wb = load_workbook(_descargar_plantilla(TPL_B_URL))
     ws = wb['FORMATOPAB']
 
     # Limpiar datos desde fila 4
