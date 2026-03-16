@@ -1,918 +1,1949 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Generador Planos Bancarios</title>
-<style>
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'Segoe UI',Arial,sans-serif;background:#f3f5f8;color:#1a2332;min-height:100vh}
-:root{--r:#cc0000;--n:#1e3a5f;--g:#059669;--o:#f59e0b}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generador de Planos Bancarios</title>
+    <!-- Font Awesome 6.4.0 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts: Nunito Sans -->
+    <link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* ===== VARIABLES Y RESET ===== */
+        :root {
+            --azul-oscuro: #162b47;
+            --azul-medio: #105788;
+            --rojo: #e51148;
+            --gris: #e0e5e5;
+            --blanco: #ffffff;
+            --verde: #059669;
+            --naranja: #f59e0b;
+        }
 
-/* Header */
-header{background:linear-gradient(135deg,var(--r) 0%,#7b0000 100%);color:#fff;padding:0 28px;height:58px;display:flex;align-items:center;gap:12px;box-shadow:0 3px 14px rgba(0,0,0,.3)}
-.hlogo{width:36px;height:36px;background:#fff;border-radius:7px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
-.hlogo svg{width:20px;height:20px}
-header h1{font-size:1.04rem;font-weight:700}
-header p{font-size:.72rem;opacity:.8;margin-top:1px}
-main{max-width:1100px;margin:24px auto;padding:0 16px;display:flex;flex-direction:column;gap:16px}
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
 
-/* Card */
-.card{background:#fff;border-radius:11px;box-shadow:0 2px 10px rgba(0,0,0,.07)}
-.ch{padding:13px 22px;border-bottom:1px solid #f0f0f0;display:flex;align-items:center;gap:9px}
-.ch h2{font-size:.9rem;font-weight:700}
-.step{width:23px;height:23px;border-radius:50%;background:var(--r);color:#fff;font-size:.73rem;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0}
-.cb{padding:18px 22px}
+        body {
+            font-family: 'Nunito Sans', Calibri, Tahoma, sans-serif;
+            background: var(--gris);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            color: #1a2332;
+        }
 
-/* Upload */
-.ugrid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
-.dz{border:2px dashed #d1d5db;border-radius:10px;padding:22px 14px;text-align:center;cursor:pointer;transition:all .16s}
-.dz:hover,.dz.over{border-color:var(--r);background:#fff8f8}
-.dz.has{border-color:var(--r);border-style:solid;background:#fff5f5}
-.dz .di{font-size:2rem;margin-bottom:7px}
-.dz .dt{font-size:.85rem;font-weight:600;color:#374151;margin-bottom:3px}
-.dz .ds{font-size:.74rem;color:#9ca3af}
-.dz .ds b{color:var(--r)}
-.dz .ftag{display:none;margin-top:9px;background:#fce4d6;color:#7b0000;font-size:.74rem;font-weight:600;padding:3px 10px;border-radius:16px;max-width:200px;margin-left:auto;margin-right:auto;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.dz.has .ftag{display:block}
-.dz input{display:none}
-.opt{font-size:.63rem;background:#e0f2fe;color:#0369a1;padding:2px 7px;border-radius:8px;font-weight:600;margin-left:5px}
+        /* ===== HEADER ===== */
+        header {
+            background: var(--azul-oscuro);
+            padding: 0 40px;
+            height: 68px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 2px 12px rgba(22,43,71,0.4);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
 
-/* Buttons */
-.brow{margin-top:18px;display:flex;gap:9px;flex-wrap:wrap;justify-content:center}
-.btn{padding:11px 24px;border-radius:8px;font-size:.88rem;font-weight:700;cursor:pointer;border:none;display:inline-flex;align-items:center;gap:7px;transition:opacity .15s,transform .1s}
-.btn:active{transform:scale(.97)}
-.btn:disabled{opacity:.4;cursor:not-allowed;pointer-events:none}
-.btn-r{background:var(--r);color:#fff}
-.btn-n{background:var(--n);color:#fff}
-.btn-o{background:#fff;color:var(--n);border:2px solid var(--n)}
-.btn-g{background:var(--g);color:#fff}
-.btn-lg{padding:14px 36px;font-size:1rem}
+        .header-logo {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            text-decoration: none;
+        }
 
-/* MODAL SELECCIÓN */
-.overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:1000;display:none;align-items:center;justify-content:center;backdrop-filter:blur(3px)}
-.overlay.show{display:flex}
-.modal{background:#fff;border-radius:16px;padding:32px 28px;width:540px;max-width:94vw;box-shadow:0 20px 60px rgba(0,0,0,.3);animation:popIn .2s ease-out}
-@keyframes popIn{from{opacity:0;transform:scale(.93)}to{opacity:1;transform:scale(1)}}
-.modal h2{font-size:1.1rem;font-weight:800;text-align:center;margin-bottom:6px}
-.modal .msub{font-size:.82rem;color:#6b7280;text-align:center;margin-bottom:22px}
-.plt-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:22px}
-.pc{border:2.5px solid #e5e7eb;border-radius:12px;padding:20px 16px;cursor:pointer;transition:all .16s;text-align:center;user-select:none}
-.pc:hover{border-color:var(--r);background:#fff8f8;transform:translateY(-2px)}
-.pc.active{border-color:var(--r);background:#fff2f2;box-shadow:0 0 0 3px rgba(204,0,0,.12)}
-.pc .pico{font-size:2.2rem;margin-bottom:9px}
-.pc .pname{font-size:.95rem;font-weight:800;margin-bottom:4px}
-.pc .pdesc{font-size:.74rem;color:#6b7280;line-height:1.45}
-.pc .pbadge{display:inline-block;padding:3px 9px;border-radius:9px;font-size:.66rem;font-weight:700;margin-top:8px}
-.pb-r{background:#fee2e2;color:var(--r)}
-.pb-b{background:#dbeafe;color:var(--n)}
-.pchk{width:20px;height:20px;border-radius:50%;border:2px solid #d1d5db;display:flex;align-items:center;justify-content:center;font-size:.7rem;margin:10px auto 0;transition:all .15s}
-.pc.active .pchk{background:var(--r);border-color:var(--r);color:#fff}
-.mfooter{display:flex;justify-content:center}
+        .header-logo img {
+            height: 40px;
+            width: auto;
+            object-fit: contain;
+            border-radius: 6px;
+        }
 
-/* MODAL LOADING */
-.loadov{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:2000;display:none;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
-.loadov.show{display:flex}
-.loadbox{background:#fff;border-radius:16px;padding:44px 52px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.35);min-width:300px}
-.lspin{width:56px;height:56px;border:5px solid #f3f3f3;border-top-color:var(--r);border-radius:50%;animation:rot .7s linear infinite;margin:0 auto 20px}
-.loadbox h3{font-size:1.05rem;font-weight:700;margin-bottom:7px}
-.loadbox p{font-size:.83rem;color:#6b7280}
-@keyframes rot{to{transform:rotate(360deg)}}
+        .logo-placeholder {
+            height: 40px;
+            width: 40px;
+            background: var(--rojo);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            font-weight: 700;
+            color: white;
+            letter-spacing: -1px;
+            flex-shrink: 0;
+        }
 
-/* Alerts */
-.alert{border-radius:9px;padding:11px 14px;font-size:.83rem;display:none;align-items:center;gap:9px}
-.alert.show{display:flex}
-.a-ok{background:#d1fae5;color:#065f46;border:1.5px solid #6ee7b7}
-.a-err{background:#fee2e2;color:#991b1b;border:1.5px solid #fca5a5}
-.a-warn{background:#fef9c3;color:#713f12;border:1.5px solid #fde047}
+        .header-title {
+            font-family: 'Nunito Sans', sans-serif;
+            font-weight: 700;
+            font-size: 17px;
+            color: var(--blanco);
+            letter-spacing: 0.3px;
+            line-height: 1.2;
+        }
 
-/* Stats */
-.sgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:11px;margin-bottom:16px}
-.sbox{background:#f9fafb;border:1px solid #e5e7eb;border-radius:9px;padding:12px 14px;text-align:center}
-.sbox .v{font-size:1.25rem;font-weight:800;color:var(--r)}
-.sbox .l{font-size:.68rem;color:#6b7280;margin-top:2px}
+        .header-title span {
+            display: block;
+            font-weight: 600;
+            font-size: 11px;
+            color: rgba(255,255,255,0.55);
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            margin-top: 1px;
+        }
 
-/* Formulario faltantes */
-.mcard{background:#fffbeb;border:1.5px solid #fde68a;border-radius:11px;overflow:hidden}
-.mcardh{background:#fbbf24;padding:12px 20px}
-.mcardh h3{font-size:.88rem;font-weight:700;color:#78350f}
-.mcardh p{font-size:.74rem;color:#92400e;margin-top:2px}
-.mcardb{padding:16px 20px;display:flex;flex-direction:column;gap:13px}
-.ecard{background:#fff;border:1.5px solid #e5e7eb;border-radius:9px;overflow:hidden}
-.etop{background:#f8fafc;padding:9px 14px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #e5e7eb}
-.ename{font-size:.86rem;font-weight:700;color:var(--n)}
-.emeta{font-size:.72rem;color:#6b7280;margin-top:1px}
-.eval{font-size:.84rem;font-weight:700;color:var(--g)}
-.egrid5{display:grid;grid-template-columns:1fr 1fr 1fr 1fr 1fr;gap:9px;padding:13px 14px}
-.egrid5 .field label{font-size:.71rem}
-.egrid5 .field select,.egrid5 .field input{font-size:.81rem;padding:5px 7px}
-.mcardf{padding:11px 20px;border-top:1px solid #fde68a;display:flex;gap:9px}
+        .header-divider {
+            width: 1px;
+            height: 32px;
+            background: rgba(255,255,255,0.18);
+        }
 
-/* Formulario encabezado Bancolombia */
-.hdrcard{background:#eff6ff;border:1.5px solid #bfdbfe;border-radius:11px;overflow:hidden}
-.hdrcardh{background:#1e40af;padding:13px 22px}
-.hdrcardh h3{font-size:.9rem;font-weight:700;color:#fff}
-.hdrcardh p{font-size:.75rem;color:#bfdbfe;margin-top:2px}
-.hdrcardb{padding:20px 22px}
-.hdrgrid{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:14px;margin-bottom:14px}
-.hdrgrid2{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:14px}
+        /* ===== MAIN CONTAINER ===== */
+        main {
+            max-width: 1100px;
+            margin: 24px auto;
+            padding: 0 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            flex: 1;
+        }
 
-/* Fields */
-.field{display:flex;flex-direction:column}
-.field label{font-size:.77rem;font-weight:600;color:#374151;margin-bottom:4px;display:flex;align-items:center;gap:4px}
-.field label .req{color:var(--r);font-size:.9rem}
-.field input,.field select{padding:8px 10px;border:1.5px solid #d1d5db;border-radius:7px;font-size:.86rem;background:#fff;transition:border-color .15s;width:100%}
-.field input:focus,.field select:focus{outline:none;border-color:var(--r)}
-.field input.invalid,.field select.invalid{border-color:#ef4444;background:#fff5f5}
-.field .err-msg{font-size:.71rem;color:#ef4444;margin-top:3px;display:none}
-.field.has-err .err-msg{display:block}
-.field.has-err input,.field.has-err select{border-color:#ef4444;background:#fff5f5}
+        /* ===== TARJETAS (cards) ===== */
+        .card {
+            background: var(--blanco);
+            border-radius: 20px;
+            box-shadow: 0 12px 40px rgba(22,43,71,0.12);
+            overflow: hidden;
+        }
 
-/* Aviso validación */
-.valid-banner{background:#fee2e2;border:1.5px solid #fca5a5;border-radius:8px;padding:10px 14px;font-size:.82rem;color:#991b1b;display:none;align-items:center;gap:8px;margin-bottom:12px}
-.valid-banner.show{display:flex}
+        .card-header {
+            padding: 13px 22px;
+            border-bottom: 1px solid #f0f0f0;
+            display: flex;
+            align-items: center;
+            gap: 9px;
+            background: var(--blanco);
+        }
 
-/* Preview tables */
-.editinfo{background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:9px 14px;font-size:.79rem;color:#065f46;margin-bottom:12px;display:flex;align-items:center;gap:7px}
-.editinfo.blue{background:#eff6ff;border-color:#bfdbfe;color:#1e40af}
-.tw{overflow-x:auto;border-radius:9px;border:1px solid #e5e7eb}
-table{width:100%;border-collapse:collapse;font-size:.79rem}
-thead th{background:var(--n);color:#fff;padding:9px 10px;text-align:left;white-space:nowrap;font-weight:600;font-size:.75rem}
-thead th.the{background:#1e4976;font-size:.7rem;padding:5px 10px;color:#93c5fd}
-tbody tr:nth-child(even){background:#f8fafc}
-tbody tr:hover{background:#fff5f5}
-tbody td{padding:7px 10px;border-bottom:1px solid #f1f5f9;vertical-align:middle}
-tbody td.tde input,tbody td.tde select{width:100%;padding:4px 6px;border:1.5px solid #d1d5db;border-radius:5px;font-size:.75rem;background:#fff}
-tbody td.tde input:focus,tbody td.tde select:focus{outline:none;border-color:var(--g)}
-tbody td.tde input.ch,tbody td.tde select.ch{border-color:var(--g);background:#f0fdf4}
-tfoot td{background:var(--n);color:#fff;font-weight:700;padding:8px 10px}
-.trw td{background:#fef9c3!important}
-.vr{text-align:right;font-variant-numeric:tabular-nums;font-weight:600}
-.badge{display:inline-block;padding:2px 7px;border-radius:14px;font-size:.67rem;font-weight:600}
-.bok{background:#d1fae5;color:#065f46}
-.bwn{background:#fee2e2;color:#991b1b}
+        .card-header h2 {
+            font-size: 0.9rem;
+            font-weight: 700;
+            color: var(--azul-oscuro);
+        }
 
-/* Sección con título coloreado */
-.secbox{border-radius:11px;overflow:hidden;border:1px solid #e5e7eb}
-.sech-r{background:var(--r);color:#fff;padding:12px 22px;font-size:.9rem;font-weight:700;display:flex;align-items:center;gap:8px}
-.sech-n{background:var(--n);color:#fff;padding:12px 22px;font-size:.9rem;font-weight:700;display:flex;align-items:center;gap:8px}
-.secbody{background:#fff;padding:18px 22px}
-.total-tag{margin-left:auto;font-size:.82rem;opacity:.9}
+        .step {
+            width: 23px;
+            height: 23px;
+            border-radius: 50%;
+            background: var(--rojo);
+            color: var(--blanco);
+            font-size: 0.73rem;
+            font-weight: 800;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
 
-.spin{display:none;width:13px;height:13px;border:2.5px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:rot .6s linear infinite}
+        .card-body {
+            padding: 80px 80px;
+        }
 
-@media(max-width:720px){
-  .ugrid,.plt-grid{grid-template-columns:1fr}
-  .sgrid{grid-template-columns:1fr 1fr}
-  .hdrgrid,.hdrgrid2{grid-template-columns:1fr 1fr}
-  .egrid5{grid-template-columns:1fr 1fr}
-}
-</style>
+        /* ===== FILE UPLOAD AREA ===== */
+        .upload-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+        }
+
+        .file-upload {
+            border: 2px dashed #c5cfd8;
+            padding: 32px 20px;
+            border-radius: 14px;
+            cursor: pointer;
+            transition: all 0.35s cubic-bezier(.4,0,.2,1);
+            margin-bottom: 0;
+            display: block;
+            position: relative;
+            overflow: hidden;
+            background: var(--blanco);
+        }
+
+        .file-upload:hover,
+        .file-upload.over {
+            border-color: var(--azul-medio);
+            background: #f0f6fc;
+        }
+
+        .file-upload.has,
+        .file-upload.has-file {
+            padding: 14px 16px;
+            border-color: var(--azul-medio);
+            background: #f0f6fc;
+        }
+
+        /* Estado vacío */
+        .upload-empty {
+            transition: all 0.35s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .upload-empty i {
+            font-size: 42px;
+            color: var(--azul-medio);
+            margin-bottom: 4px;
+            transition: transform 0.3s ease;
+        }
+
+        .file-upload:hover .upload-empty i {
+            transform: translateY(-3px);
+        }
+
+        .upload-empty .label-principal {
+            font-weight: 700;
+            color: var(--azul-oscuro);
+            font-size: 14px;
+        }
+
+        .upload-empty .label-sub {
+            font-size: 11px;
+            color: #94a3b8;
+        }
+
+        /* Estado con archivo */
+        .upload-loaded {
+            display: none;
+            align-items: center;
+            gap: 12px;
+            text-align: left;
+            width: 100%;
+        }
+
+        .file-upload.has .upload-empty,
+        .file-upload.has-file .upload-empty { display: none; }
+        .file-upload.has .upload-loaded,
+        .file-upload.has-file .upload-loaded { display: flex; }
+
+        .file-icon-small {
+            color: var(--azul-medio);
+            font-size: 22px;
+            flex-shrink: 0;
+        }
+
+        .file-name-text {
+            flex: 1;
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--azul-oscuro);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            min-width: 0;
+        }
+
+        .file-name-text span {
+            display: block;
+            font-size: 11px;
+            font-weight: 400;
+            color: #94a3b8;
+            margin-top: 1px;
+        }
+
+        /* Animación check */
+        .check-anim {
+            width: 36px;
+            height: 36px;
+            flex-shrink: 0;
+            position: relative;
+        }
+
+        .check-circle {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: #ecfdf5;
+            border: 2.5px solid #10b981;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: popIn 0.45s cubic-bezier(.34,1.56,.64,1) both;
+        }
+
+        .check-circle i {
+            color: #10b981;
+            font-size: 15px;
+            animation: fadeSlideIn 0.3s 0.25s ease both;
+            opacity: 0;
+        }
+
+        @keyframes popIn {
+            0%   { transform: scale(0); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        @keyframes fadeSlideIn {
+            0%   { opacity: 0; transform: scale(0.5); }
+            100% { opacity: 1; transform: scale(1); }
+        }
+
+        .file-upload input {
+            display: none;
+        }
+
+        .opt-badge {
+            font-size: 0.63rem;
+            background: #e0f2fe;
+            color: #0369a1;
+            padding: 2px 7px;
+            border-radius: 8px;
+            font-weight: 600;
+            margin-left: 5px;
+        }
+
+        /* ===== BOTONES ===== */
+        .button-row {
+            margin-top: 18px;
+            display: flex;
+            gap: 9px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .btn {
+            padding: 11px 24px;
+            border-radius: 10px;
+            font-size: 0.88rem;
+            font-weight: 700;
+            cursor: pointer;
+            border: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: background 0.25s, transform 0.15s, opacity 0.15s;
+            font-family: 'Nunito Sans', sans-serif;
+            letter-spacing: 0.3px;
+        }
+
+        .btn:active {
+            transform: scale(0.97);
+        }
+
+        .btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+
+        .btn-primary {
+            background: var(--azul-oscuro);
+            color: var(--blanco);
+        }
+
+        .btn-primary:hover {
+            background: var(--azul-medio);
+        }
+
+        .btn-secondary {
+            background: var(--blanco);
+            color: var(--azul-oscuro);
+            border: 2px solid var(--azul-oscuro);
+        }
+
+        .btn-secondary:hover {
+            background: #f0f6fc;
+        }
+
+        .btn-success {
+            background: var(--verde);
+            color: var(--blanco);
+        }
+
+        .btn-success:hover {
+            background: #047857;
+        }
+
+        .btn-lg {
+            padding: 14px 36px;
+            font-size: 1rem;
+        }
+
+        /* ===== MODAL SELECCIÓN ===== */
+        .overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(22,43,71,0.45);
+            backdrop-filter: blur(4px);
+            z-index: 1000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .overlay.show {
+            display: flex;
+        }
+
+        .modal {
+            background: var(--blanco);
+            border-radius: 24px;
+            padding: 35px;
+            width: 540px;
+            max-width: 94vw;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            animation: modalEntrance 0.4s ease-out;
+            text-align: center;
+        }
+
+        @keyframes modalEntrance {
+            from { transform: scale(0.7); opacity: 0; }
+            to   { transform: scale(1); opacity: 1; }
+        }
+
+        .modal h2 {
+            font-family: 'Nunito Sans', sans-serif;
+            font-weight: 700;
+            font-size: 1.1rem;
+            color: var(--azul-oscuro);
+            margin-bottom: 6px;
+        }
+
+        .modal-sub {
+            font-size: 0.82rem;
+            color: #6b7280;
+            margin-bottom: 22px;
+        }
+
+        .plantilla-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+            margin-bottom: 22px;
+        }
+
+        .plantilla-card {
+            border: 2.5px solid #e5e7eb;
+            border-radius: 12px;
+            padding: 20px 16px;
+            cursor: pointer;
+            transition: all 0.16s;
+            text-align: center;
+            user-select: none;
+            background: var(--blanco);
+        }
+
+        .plantilla-card:hover {
+            border-color: var(--rojo);
+            background: #fff8f8;
+            transform: translateY(-2px);
+        }
+
+        .plantilla-card.active {
+            border-color: var(--rojo);
+            background: #fff2f2;
+            box-shadow: 0 0 0 3px rgba(229, 9, 20, 0.12);
+        }
+
+        .plantilla-card .plantilla-icon {
+            font-size: 2.5rem;
+            color: var(--azul-medio);
+            margin-bottom: 9px;
+        }
+
+        .plantilla-card .plantilla-img {
+            height: 60px;
+            width: auto;
+            margin-bottom: 9px;
+            object-fit: contain;
+        }
+
+        .plantilla-card .plantilla-name {
+            font-size: 0.95rem;
+            font-weight: 800;
+            color: var(--azul-oscuro);
+            margin-bottom: 4px;
+        }
+
+        .plantilla-card .plantilla-desc {
+            font-size: 0.74rem;
+            color: #6b7280;
+            line-height: 1.45;
+        }
+
+        .plantilla-card .plantilla-badge {
+            display: inline-block;
+            padding: 3px 9px;
+            border-radius: 9px;
+            font-size: 0.66rem;
+            font-weight: 700;
+            margin-top: 8px;
+        }
+
+        .badge-rojo {
+            background: #fee2e2;
+            color: var(--rojo);
+        }
+
+        .badge-azul {
+            background: #dbeafe;
+            color: var(--azul-oscuro);
+        }
+
+        .check-indicator {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            border: 2px solid #d1d5db;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7rem;
+            margin: 10px auto 0;
+            transition: all 0.15s;
+            color: transparent;
+        }
+
+        .plantilla-card.active .check-indicator {
+            background: var(--rojo);
+            border-color: var(--rojo);
+            color: var(--blanco);
+        }
+
+        /* ===== MODAL LOADING ===== */
+        .loading-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(22,43,71,0.6);
+            backdrop-filter: blur(4px);
+            z-index: 2000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .loading-overlay.show {
+            display: flex;
+        }
+
+        .loading-box {
+            background: var(--blanco);
+            border-radius: 24px;
+            padding: 44px 52px;
+            text-align: center;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.35);
+            min-width: 300px;
+        }
+
+        .loading-spinner {
+            width: 56px;
+            height: 56px;
+            border: 5px solid #f3f3f3;
+            border-top-color: var(--rojo);
+            border-radius: 50%;
+            animation: spin 0.7s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .loading-box h3 {
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: var(--azul-oscuro);
+            margin-bottom: 7px;
+        }
+
+        .loading-box p {
+            font-size: 0.83rem;
+            color: #6b7280;
+        }
+
+        /* ===== ALERTAS ===== */
+        #alerta-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 10000;
+            background: rgba(22,43,71,0.45);
+            backdrop-filter: blur(4px);
+        }
+
+        .alerta-card {
+            background: white;
+            padding: 35px;
+            width: 320px;
+            border-radius: 24px;
+            text-align: center;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.15);
+            animation: entrada 0.4s ease-out;
+        }
+
+        .alerta-card.error { border-top: 7px solid var(--rojo); }
+        .alerta-card.success { border-top: 7px solid var(--verde); }
+        .alerta-card.warning { border-top: 7px solid var(--naranja); }
+
+        .alerta-card i {
+            font-size: 50px;
+            margin-bottom: 15px;
+            color: var(--rojo);
+        }
+        .alerta-card.success i { color: var(--verde); }
+        .alerta-card.warning i { color: var(--naranja); }
+
+        .alerta-card h3 {
+            font-family: 'Nunito Sans', sans-serif;
+            font-weight: 700;
+            color: var(--azul-oscuro);
+            margin-bottom: 10px;
+        }
+
+        .alerta-card p {
+            font-size: 14px;
+            color: #64748b;
+            line-height: 1.5;
+        }
+
+        @keyframes entrada {
+            from { transform: scale(0.7); opacity: 0; }
+            to   { transform: scale(1); opacity: 1; }
+        }
+
+        /* ===== STATS CARDS ===== */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 11px;
+            margin-bottom: 16px;
+        }
+
+        .stat-box {
+            background: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 9px;
+            padding: 12px 14px;
+            text-align: center;
+        }
+
+        .stat-box .stat-value {
+            font-size: 1.25rem;
+            font-weight: 800;
+            color: var(--rojo);
+        }
+
+        .stat-box .stat-label {
+            font-size: 0.68rem;
+            color: #6b7280;
+            margin-top: 2px;
+        }
+
+        /* ===== TABLAS EDITABLES ===== */
+        .table-wrapper {
+            overflow-x: auto;
+            border-radius: 9px;
+            border: 1px solid #e5e7eb;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.79rem;
+        }
+
+        thead th {
+            background: var(--azul-oscuro);
+            color: var(--blanco);
+            padding: 9px 10px;
+            text-align: left;
+            white-space: nowrap;
+            font-weight: 600;
+            font-size: 0.75rem;
+        }
+
+        thead th.the {
+            background: #1e4976;
+            font-size: 0.7rem;
+            padding: 5px 10px;
+            color: #93c5fd;
+        }
+
+        tbody tr:nth-child(even) {
+            background: #f8fafc;
+        }
+
+        tbody tr:hover {
+            background: #fff5f5;
+        }
+
+        tbody td {
+            padding: 7px 10px;
+            border-bottom: 1px solid #f1f5f9;
+            vertical-align: middle;
+        }
+
+        tbody td.tde input,
+        tbody td.tde select {
+            width: 100%;
+            padding: 4px 6px;
+            border: 1.5px solid #d1d5db;
+            border-radius: 5px;
+            font-size: 0.75rem;
+            background: var(--blanco);
+            font-family: 'Nunito Sans', sans-serif;
+        }
+
+        tbody td.tde input:focus,
+        tbody td.tde select:focus {
+            outline: none;
+            border-color: var(--verde);
+        }
+
+        tbody td.tde input.ch,
+        tbody td.tde select.ch {
+            border-color: var(--verde);
+            background: #f0fdf4;
+        }
+
+        tfoot td {
+            background: var(--azul-oscuro);
+            color: var(--blanco);
+            font-weight: 700;
+            padding: 8px 10px;
+        }
+
+        .trw td {
+            background: #fef9c3 !important;
+        }
+
+        .vr {
+            text-align: right;
+            font-variant-numeric: tabular-nums;
+            font-weight: 600;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 2px 7px;
+            border-radius: 14px;
+            font-size: 0.67rem;
+            font-weight: 600;
+        }
+
+        .badge-success {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .badge-warning {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        /* ===== FORMULARIOS ===== */
+        .field {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .field label {
+            font-size: 0.77rem;
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 4px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .field label .required {
+            color: var(--rojo);
+            font-size: 0.9rem;
+        }
+
+        .field input,
+        .field select {
+            padding: 8px 10px;
+            border: 1.5px solid #d1d5db;
+            border-radius: 7px;
+            font-size: 0.86rem;
+            background: var(--blanco);
+            transition: border-color 0.15s;
+            width: 100%;
+            font-family: 'Nunito Sans', sans-serif;
+        }
+
+        .field input:focus,
+        .field select:focus {
+            outline: none;
+            border-color: var(--rojo);
+        }
+
+        .field input.invalid,
+        .field select.invalid {
+            border-color: #ef4444;
+            background: #fff5f5;
+        }
+
+        .field .error-msg {
+            font-size: 0.71rem;
+            color: #ef4444;
+            margin-top: 3px;
+            display: none;
+        }
+
+        .field.has-error .error-msg {
+            display: block;
+        }
+
+        .field.has-error input,
+        .field.has-error select {
+            border-color: #ef4444;
+            background: #fff5f5;
+        }
+
+        /* ===== BANNER DE VALIDACIÓN ===== */
+        .validation-banner {
+            background: #fee2e2;
+            border: 1.5px solid #fca5a5;
+            border-radius: 8px;
+            padding: 10px 14px;
+            font-size: 0.82rem;
+            color: #991b1b;
+            display: none;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        .validation-banner.show {
+            display: flex;
+        }
+
+        /* ===== INFO EDITABLE ===== */
+        .edit-info {
+            background: #f0fdf4;
+            border: 1px solid #bbf7d0;
+            border-radius: 8px;
+            padding: 9px 14px;
+            font-size: 0.79rem;
+            color: #065f46;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 7px;
+        }
+
+        .edit-info.blue {
+            background: #eff6ff;
+            border-color: #bfdbfe;
+            color: #1e40af;
+        }
+
+        /* ===== TARJETAS DE SECCIONES ===== */
+        .section-box {
+            border-radius: 11px;
+            overflow: hidden;
+            border: 1px solid #e5e7eb;
+            background: var(--blanco);
+        }
+
+        .section-header-red {
+            background: var(--rojo);
+            color: var(--blanco);
+            padding: 12px 22px;
+            font-size: 0.9rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .section-header-blue {
+            background: var(--azul-oscuro);
+            color: var(--blanco);
+            padding: 12px 22px;
+            font-size: 0.9rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .section-body {
+            background: var(--blanco);
+            padding: 18px 22px;
+        }
+
+        .total-tag {
+            margin-left: auto;
+            font-size: 0.82rem;
+            opacity: 0.9;
+        }
+
+        /* ===== FORMULARIO DE FALTANTES ===== */
+        .missing-card {
+            background: #fffbeb;
+            border: 1.5px solid #fde68a;
+            border-radius: 11px;
+            overflow: hidden;
+        }
+
+        .missing-header {
+            background: #fbbf24;
+            padding: 12px 20px;
+        }
+
+        .missing-header h3 {
+            font-size: 0.88rem;
+            font-weight: 700;
+            color: #78350f;
+        }
+
+        .missing-header p {
+            font-size: 0.74rem;
+            color: #92400e;
+            margin-top: 2px;
+        }
+
+        .missing-body {
+            padding: 16px 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 13px;
+        }
+
+        .employee-card {
+            background: var(--blanco);
+            border: 1.5px solid #e5e7eb;
+            border-radius: 9px;
+            overflow: hidden;
+        }
+
+        .employee-top {
+            background: #f8fafc;
+            padding: 9px 14px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .employee-name {
+            font-size: 0.86rem;
+            font-weight: 700;
+            color: var(--azul-oscuro);
+        }
+
+        .employee-meta {
+            font-size: 0.72rem;
+            color: #6b7280;
+            margin-top: 1px;
+        }
+
+        .employee-value {
+            font-size: 0.84rem;
+            font-weight: 700;
+            color: var(--verde);
+        }
+
+        .employee-grid5 {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr 1fr 1fr;
+            gap: 9px;
+            padding: 13px 14px;
+        }
+
+        .missing-footer {
+            padding: 11px 20px;
+            border-top: 1px solid #fde68a;
+            display: flex;
+            gap: 9px;
+        }
+
+        /* ===== ESTILOS ADICIONALES PARA LOS NUEVOS ELEMENTOS (de Código 2) ===== */
+        .ecard {
+            background: var(--blanco);
+            border: 1.5px solid #e5e7eb;
+            border-radius: 9px;
+            overflow: hidden;
+        }
+        .etop {
+            background: #f8fafc;
+            padding: 9px 14px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        .ename {
+            font-size: 0.86rem;
+            font-weight: 700;
+            color: var(--azul-oscuro);
+        }
+        .emeta {
+            font-size: 0.72rem;
+            color: #6b7280;
+            margin-top: 1px;
+        }
+        .eval {
+            font-size: 0.84rem;
+            font-weight: 700;
+            color: var(--verde);
+        }
+        .egrid5 {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr 1fr 1fr;
+            gap: 9px;
+            padding: 13px 14px;
+        }
+        .egrid5 .field label {
+            font-size: 0.71rem;
+        }
+        .egrid5 .field select,
+        .egrid5 .field input {
+            font-size: 0.81rem;
+            padding: 5px 7px;
+        }
+        .mcardf {
+            padding: 11px 20px;
+            border-top: 1px solid #fde68a;
+            display: flex;
+            gap: 9px;
+        }
+
+        /* ===== FORMULARIO ENCABEZADO BANCOLOMBIA ===== */
+        .header-card {
+            background: #eff6ff;
+            border: 1.5px solid #bfdbfe;
+            border-radius: 11px;
+            overflow: hidden;
+        }
+
+        .header-card-header {
+            background: #1e40af;
+            padding: 13px 22px;
+        }
+
+        .header-card-header h3 {
+            font-size: 0.9rem;
+            font-weight: 700;
+            color: var(--blanco);
+        }
+
+        .header-card-header p {
+            font-size: 0.75rem;
+            color: #bfdbfe;
+            margin-top: 2px;
+        }
+
+        .header-card-body {
+            padding: 20px 22px;
+        }
+
+        .header-grid,
+        .header-grid2 {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 14px;
+            margin-bottom: 14px;
+        }
+
+        .header-grid2 {
+            margin-bottom: 0;
+        }
+
+        /* ===== SPINNER EN BOTONES ===== */
+        .spinner {
+            display: none;
+            width: 13px;
+            height: 13px;
+            border: 2.5px solid rgba(255,255,255,0.4);
+            border-top-color: var(--blanco);
+            border-radius: 50%;
+            animation: spin 0.6s linear infinite;
+        }
+
+        /* ===== RESPONSIVE ===== */
+        @media (max-width: 720px) {
+            .upload-grid,
+            .plantilla-grid,
+            .stats-grid,
+            .header-grid,
+            .header-grid2,
+            .employee-grid5,
+            .egrid5 {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
 </head>
 <body>
 
+<!-- ===== HEADER ===== -->
 <header>
-  <div class="hlogo">
-    <svg viewBox="0 0 24 24" fill="none"><rect x="2" y="5" width="20" height="14" rx="2" fill="#cc0000"/><path d="M7 12h10M7 9h6M7 15h4" stroke="#fff" stroke-width="1.5" stroke-linecap="round"/></svg>
-  </div>
-  <div><h1>Generador de Planos Bancarios</h1><p>Santander · Bancolombia PAB — plantillas oficiales</p></div>
+    <div class="header-logo">
+        <img src="{% static 'img/logo_fondo_oscuro.png' %}" alt="Logo" style="height: 80px;" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+        <div class="logo-placeholder" style="display: none;"><i class="fa-solid fa-building-columns"></i></div>
+        <div class="header-divider"></div>
+        <div class="header-title">
+            Generador de Planos Bancarios
+            <span>Santander · Bancolombia PAB</span>
+        </div>
+    </div>
 </header>
 
-<!-- MODAL SELECCIÓN DE PLANTILLA -->
+<!-- ===== MODAL SELECCIÓN DE PLANTILLA ===== -->
 <div class="overlay" id="modalPlt">
-  <div class="modal">
-    <h2>¿Qué plantilla quieres generar?</h2>
-    <p class="msub">Selecciona el banco destino y haz clic en Continuar</p>
-    <div class="plt-grid">
-      <div class="pc active" id="pc-s" onclick="elegirPlt('santander')">
-        <div class="pico">🏦</div>
-        <div class="pname">Santander</div>
-        <div class="pdesc">Texto en todas las columnas.<br>Encabezados bilingüe ES/EN.</div>
-        <span class="pbadge pb-r">plantilla_plano_santander</span>
-        <div class="pchk">✓</div>
-      </div>
-      <div class="pc" id="pc-b" onclick="elegirPlt('bancolombia')">
-        <div class="pico">🔄</div>
-        <div class="pname">Bancolombia / PAB</div>
-        <div class="pdesc">Números en tipo doc, banco,<br>transacción y fecha. Formato FORMATOPAB.</div>
-        <span class="pbadge pb-b">plantilla_plano_bancolombia</span>
-        <div class="pchk">✓</div>
-      </div>
+    <div class="modal">
+        <h2>¿Qué plantilla quieres generar?</h2>
+        <p class="modal-sub">Selecciona el banco destino y haz clic en Continuar</p>
+        <div class="plantilla-grid">
+            <div class="plantilla-card active" id="pc-s" onclick="elegirPlt('santander')">
+                <img src="{% static 'img/logo_banco_santander.png' %}" alt="Santander" class="plantilla-img" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                <i class="fa-solid fa-building-columns plantilla-icon" style="display: none;"></i>
+                <div class="plantilla-name">Santander</div>
+                <div class="plantilla-desc">Texto en todas las columnas.<br>Encabezados bilingüe ES/EN.</div>
+                <span class="plantilla-badge badge-rojo">plantilla_plano_santander</span>
+                <div class="check-indicator"><i class="fa-solid fa-check"></i></div>
+            </div>
+            <div class="plantilla-card" id="pc-b" onclick="elegirPlt('bancolombia')">
+                <img src="{% static 'img/logo_bancolombia.png' %}" alt="Bancolombia" class="plantilla-img" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                <i class="fa-solid fa-arrows-rotate plantilla-icon" style="display: none;"></i>
+                <div class="plantilla-name">Bancolombia / PAB</div>
+                <div class="plantilla-desc">Números en tipo doc, banco,<br>transacción y fecha. Formato FORMATOPAB.</div>
+                <span class="plantilla-badge badge-azul">plantilla_plano_bancolombia</span>
+                <div class="check-indicator"><i class="fa-solid fa-check"></i></div>
+            </div>
+        </div>
+        <div class="mfooter">
+            <button class="btn btn-primary btn-lg" onclick="confirmarPlt()">Continuar <i class="fa-solid fa-arrow-right"></i></button>
+        </div>
     </div>
-    <div class="mfooter">
-      <button class="btn btn-r btn-lg" onclick="confirmarPlt()">Continuar →</button>
-    </div>
-  </div>
 </div>
 
-<!-- MODAL LOADING -->
-<div class="loadov" id="loadov">
-  <div class="loadbox">
-    <div class="lspin"></div>
-    <h3 id="ltitle">Generando archivo…</h3>
-    <p id="lmsg">Procesando datos y aplicando la plantilla bancaria</p>
-  </div>
+<!-- ===== MODAL LOADING ===== -->
+<div class="loading-overlay" id="loadov">
+    <div class="loading-box">
+        <div class="loading-spinner"></div>
+        <h3 id="ltitle">Generando archivo…</h3>
+        <p id="lmsg">Procesando datos y aplicando la plantilla bancaria</p>
+    </div>
 </div>
 
+<!-- ===== CONTENIDO PRINCIPAL ===== -->
 <main>
 
-<!-- PASO 1 -->
-<div class="card">
-  <div class="ch"><div class="step">1</div><h2>Cargar archivos</h2></div>
-  <div class="cb">
-    <div class="ugrid">
-      <div class="dz" id="dz1" onclick="document.getElementById('fi1').click()">
-        <div class="di">📄</div>
-        <div class="dt">Formato de Envío <span style="color:var(--r)">*</span></div>
-        <div class="ds">Arrastra o <b>haz clic</b> — .xlsx / .xlsm</div>
-        <div class="ftag" id="ft1"></div>
-        <input type="file" id="fi1" accept=".xlsx,.xlsm"/>
-      </div>
-      <div class="dz" id="dz2" onclick="document.getElementById('fi2').click()">
-        <div class="di">👥</div>
-        <div class="dt">Maestro de Empleados <span class="opt">Opcional</span></div>
-        <div class="ds">Complementa empleados no incluidos en el Formato</div>
-        <div class="ftag" id="ft2"></div>
-        <input type="file" id="fi2" accept=".xlsx,.xlsm"/>
-      </div>
+    <!-- PASO 1: Cargar archivos -->
+    <div class="card">
+        <div class="card-header">
+            <div class="step">1</div>
+            <h2>Cargar archivos</h2>
+        </div>
+        <div class="card-body">
+            <div class="upload-grid">
+                <!-- Drop zone 1: Formato de Envío (requerido) -->
+                <div class="file-upload" id="dz1" onclick="document.getElementById('fi1').click()">
+                    <!-- Estado vacío -->
+                    <div class="upload-empty">
+                        <i class="fa-solid fa-file-excel"></i>
+                        <div class="label-principal">Haz clic para buscar archivo</div>
+                        <div class="label-sub">Formato de envio informacion: .xlsx, .xlsm <span class="opt-badge">Requerido</span></div>
+                    </div>
+                    <!-- Estado con archivo cargado -->
+                    <div class="upload-loaded">
+                        <i class="fa-solid fa-file-excel file-icon-small"></i>
+                        <div class="file-name-text">
+                            <span id="nombre1">Ningún archivo</span>
+                            <span id="tamano1"></span>
+                            <!-- elemento oculto para compatibilidad con setFile de Código 2 -->
+                            <span id="ft1" style="display:none;"></span>
+                        </div>
+                        <div class="check-anim" id="check1" style="display:none;">
+                            <div class="check-circle">
+                                <i class="fa-solid fa-check"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <input type="file" id="fi1" accept=".xlsx,.xlsm">
+                </div>
+
+                <!-- Drop zone 2: Maestro de Empleados (opcional) -->
+                <div class="file-upload" id="dz2" onclick="document.getElementById('fi2').click()">
+                    <div class="upload-empty">
+                        <i class="fa-solid fa-users"></i>
+                        <div class="label-principal">Haz clic para buscar archivo</div>
+                        <div class="label-sub">Formato Exel Maestro: .xlsx, .xlsm <span class="opt-badge">Requerido</span></div>
+                    </div>
+                    <div class="upload-loaded">
+                        <i class="fa-solid fa-users file-icon-small"></i>
+                        <div class="file-name-text">
+                            <span id="nombre2">Ningún archivo</span>
+                            <span id="tamano2"></span>
+                            <span id="ft2" style="display:none;"></span>
+                        </div>
+                        <div class="check-anim" id="check2" style="display:none;">
+                            <div class="check-circle">
+                                <i class="fa-solid fa-check"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <input type="file" id="fi2" accept=".xlsx,.xlsm">
+                </div>
+            </div>
+            <div class="button-row">
+                <button class="btn btn-primary btn-lg" id="btnCargar" disabled onclick="procesarArchivos()">
+                    <span class="spinner" id="sp1"></span>
+                    <i class="fa-solid fa-magnifying-glass"></i> Cargar y seleccionar plantilla
+                </button>
+            </div>
+        </div>
     </div>
-    <div class="brow">
-      <button class="btn btn-r btn-lg" id="btnCargar" disabled onclick="procesarArchivos()">
-        <span class="spin" id="sp1"></span>🔍 Cargar y seleccionar plantilla
-      </button>
+
+    <!-- Alerta flotante -->
+    <div id="alerta-overlay"><div id="alerta-content"></div></div>
+    <!-- Mensajes Django ocultos -->
+    <div id="django-messages" style="display: none;">
+        {% if messages %}
+            {% for message in messages %}
+                <span class="msg" data-tag="{{ message.tags }}" data-content="{{ message }}"></span>
+            {% endfor %}
+        {% endif %}
     </div>
-  </div>
-</div>
 
-<div class="alert" id="alerta"></div>
-
-<!-- FORMULARIO FALTANTES -->
-<div id="secFalt" style="display:none">
-  <div class="mcard">
-    <div class="mcardh">
-      <h3>⚠️ Empleados sin datos bancarios — completa antes de generar</h3>
-      <p>No se encontraron en el maestro. Ingresa sus datos para incluirlos.</p>
+    <!-- FORMULARIO FALTANTES -->
+    <div id="secFalt" style="display:none;">
+        <div class="missing-card">
+            <div class="missing-header">
+                <h3><i class="fa-solid fa-triangle-exclamation"></i> Empleados sin datos bancarios — completa antes de generar</h3>
+                <p>No se encontraron en el maestro. Ingresa sus datos para incluirlos.</p>
+            </div>
+            <div class="missing-body" id="mBody"></div>
+            <div class="missing-footer">
+                <button class="btn btn-success" onclick="confirmarFalt()"><i class="fa-solid fa-check"></i> Confirmar datos</button>
+                <button class="btn btn-secondary" onclick="saltarFalt()">Continuar sin estos empleados</button>
+            </div>
+        </div>
     </div>
-    <div class="mcardb" id="mBody"></div>
-    <div class="mcardf">
-      <button class="btn btn-g" onclick="confirmarFalt()">✅ Confirmar datos</button>
-      <button class="btn btn-o" onclick="saltarFalt()">Continuar sin estos empleados</button>
+
+    <!-- VISTA PREVIA SANTANDER (sin Documento Autorizado) -->
+    <div id="secSant" style="display:none;">
+        <div class="section-box">
+            <div class="section-header-red">
+                <i class="fa-solid fa-building-columns"></i> Vista Previa — Santander
+                <span class="total-tag" id="stotal"></span>
+            </div>
+            <div class="section-body">
+                <div class="stats-grid" id="sgridS"></div>
+                <div class="edit-info"><i class="fa-solid fa-pencil"></i> Todas las celdas son editables. Email y Celular se toman del maestro automáticamente.</div>
+                <div class="validation-banner" id="vbS"><i class="fa-solid fa-circle-exclamation"></i> <span id="vbSmsg"></span></div>
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>#</th><th>Empleado</th>
+                                <th class="the">Tipo Doc ✎</th>
+                                <th class="the">N° Documento ✎</th>
+                                <th class="the">Banco ✎</th>
+                                <th class="the">Tipo Cuenta ✎</th>
+                                <th class="the">N° Cuenta ✎</th>
+                                <th class="the" style="text-align:right">Monto ✎</th>
+                                <th class="the">Referencia ✎</th>
+                                <th class="the">Email ✎</th>
+                                <th class="the">Celular ✎</th>
+                                <th>Maestro</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbS"></tbody>
+                        <tfoot>
+                            <tr>
+                                <td colspan="7"><strong>TOTAL</strong></td>
+                                <td class="vr" id="ftS"></td>
+                                <td colspan="4"></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+                <div style="margin-top:14px; max-width:380px;">
+                    <div class="field" id="fRefS">
+                        <label>Referencia del pago <span class="required">*</span></label>
+                        <input type="text" id="ref_s" placeholder="Ej: Reembolso 03 - 03" oninput="limpiarErr('fRefS')">
+                        <span class="error-msg">Este campo es obligatorio</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="button-row" style="padding:14px 0 0;">
+            <button class="btn btn-primary btn-lg" onclick="generarArchivo('santander')">
+                <span class="spinner" id="sp2"></span>
+                <i class="fa-solid fa-download"></i> Generar Santander (.xlsm)
+            </button>
+            <button class="btn btn-secondary" onclick="resetear()"><i class="fa-solid fa-rotate-left"></i> Nuevo archivo</button>
+        </div>
     </div>
-  </div>
-</div>
 
-<!-- VISTA PREVIA SANTANDER -->
-<div id="secSant" style="display:none">
-  <div class="secbox">
-    <div class="sech-r">🏦 Vista Previa — Santander <span class="total-tag" id="stotal"></span></div>
-    <div class="secbody">
-      <div class="sgrid" id="sgridS"></div>
-      <div class="editinfo">✏️ Todas las celdas son editables. Email y Celular se toman del maestro automáticamente. El Documento Autorizado aplica igual para todos los registros.</div>
-      <div class="valid-banner" id="vbS">⚠️ <span id="vbSmsg"></span></div>
-
-      <!-- Campo Documento Autorizado global (mismo valor para todos) -->
-      <div style="margin-bottom:14px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:11px 14px;display:flex;align-items:flex-end;gap:14px;flex-wrap:wrap">
-        <div style="font-size:.8rem;color:#065f46;flex:0 0 auto">📋 <strong>Documento Autorizado</strong> — se aplica igual en todos los registros:</div>
-        <div class="field" style="flex:1;min-width:220px;margin:0" id="fDocAut">
-          <input type="text" id="doc_aut_global" placeholder="Ej: 12345 o NIT autorizado"
-            oninput="aplicarDocAut(this.value);limpiarErr('fDocAut')"/>
-          <span class="err-msg">Este campo es obligatorio</span>
+    <!-- VISTA PREVIA BANCOLOMBIA (con Documento Autorizado) -->
+    <div id="secBcol" style="display:none;">
+        <div class="header-card">
+            <div class="header-card-header">
+                <h3><i class="fa-solid fa-building"></i> Datos del pagador — encabezado del archivo Bancolombia</h3>
+                <p>Estos valores van en la fila 2 del archivo. Todos los campos son obligatorios.</p>
+            </div>
+            <div class="header-card-body">
+                <div class="validation-banner" id="vbB"><i class="fa-solid fa-circle-exclamation"></i> <span id="vbBmsg"></span></div>
+                <div class="header-grid">
+                    <div class="field" id="fNit">
+                        <label>NIT Pagador <span class="required">*</span></label>
+                        <input type="text" id="h_nit" placeholder="900508955" oninput="limpiarErr('fNit')">
+                        <span class="error-msg">Campo obligatorio</span>
+                    </div>
+                    <div class="field" id="fTp">
+                        <label>Tipo de Pago <span class="required">*</span></label>
+                        <select id="h_tp" onchange="limpiarErr('fTp')">
+                            <option value="">— Selecciona —</option>
+                        </select>
+                        <span class="error-msg">Selecciona un tipo de pago</span>
+                    </div>
+                    <div class="field" id="fAp">
+                        <label>Aplicación <span class="required">*</span></label>
+                        <select id="h_ap" onchange="limpiarErr('fAp')">
+                            <option value="">— Selecciona —</option>
+                        </select>
+                        <span class="error-msg">Selecciona una aplicación</span>
+                    </div>
+                    <div class="field" id="fSeq">
+                        <label>Secuencia de Envío <span class="required">*</span></label>
+                        <input type="text" id="h_seq" placeholder="A2" oninput="limpiarErr('fSeq')">
+                        <span class="error-msg">Campo obligatorio</span>
+                    </div>
+                </div>
+                <div class="header-grid2">
+                    <div class="field" id="fCta">
+                        <label>Nro Cuenta a Debitar <span class="required">*</span></label>
+                        <input type="text" id="h_cta" placeholder="16700001881" oninput="limpiarErr('fCta')">
+                        <span class="error-msg">Campo obligatorio</span>
+                    </div>
+                    <div class="field" id="fTcd">
+                        <label>Tipo Cuenta a Debitar <span class="required">*</span></label>
+                        <select id="h_tcd" onchange="limpiarErr('fTcd')">
+                            <option value="">— Selecciona —</option>
+                        </select>
+                        <span class="error-msg">Selecciona un tipo</span>
+                    </div>
+                    <div class="field" id="fDesc">
+                        <label>Descripción del Pago <span class="required">*</span></label>
+                        <input type="text" id="h_desc" placeholder="Reembolso" oninput="limpiarErr('fDesc')">
+                        <span class="error-msg">Campo obligatorio</span>
+                    </div>
+                    <div class="field" id="fFecha">
+                        <label>Fecha de Aplicación <span class="required">*</span></label>
+                        <input type="date" id="h_fecha" onchange="limpiarErr('fFecha')">
+                        <span class="error-msg">Selecciona una fecha</span>
+                    </div>
+                </div>
+                <!-- Documento Autorizado global (solo Bancolombia) -->
+                <div style="margin-top:14px; max-width:420px;">
+                    <div class="field">
+                        <label>Documento Autorizado <small style="color:#6b7280;font-weight:400">(se aplica a todos los registros)</small></label>
+                        <input type="text" id="h_doc_aut" placeholder="Ej: número de autorización" oninput="aplicarDocAut()">
+                    </div>
+                </div>
+            </div>
         </div>
-      </div>
 
-      <div class="tw">
-        <table>
-          <thead><tr>
-            <th>#</th><th>Empleado</th>
-            <th class="the">Tipo Doc ✎</th>
-            <th class="the">N° Documento ✎</th>
-            <th class="the">Banco ✎</th>
-            <th class="the">Tipo Cuenta ✎</th>
-            <th class="the">N° Cuenta ✎</th>
-            <th class="the" style="text-align:right">Monto ✎</th>
-            <th class="the">Referencia ✎</th>
-            <th class="the">Email ✎</th>
-            <th class="the">Doc. Autorizado</th>
-            <th class="the">Celular ✎</th>
-            <th>Maestro</th>
-          </tr></thead>
-          <tbody id="tbS"></tbody>
-          <tfoot><tr>
-            <td colspan="7"><strong>TOTAL</strong></td>
-            <td class="vr" id="ftS"></td>
-            <td colspan="5"></td>
-          </tr></tfoot>
-        </table>
-      </div>
-      <div style="margin-top:14px;max-width:380px">
-        <div class="field" id="fRefS">
-          <label>Referencia del pago <span class="req">*</span></label>
-          <input type="text" id="ref_s" placeholder="Ej: Reembolso 03 - 03" oninput="limpiarErr('fRefS')"/>
-          <span class="err-msg">Este campo es obligatorio</span>
+        <div class="section-box" style="margin-top:16px;">
+            <div class="section-header-blue">
+                <i class="fa-solid fa-arrows-rotate"></i> Vista Previa — Bancolombia / PAB
+                <span class="total-tag" id="btotal"></span>
+            </div>
+            <div class="section-body">
+                <div class="stats-grid" id="sgridB"></div>
+                <div class="edit-info blue"><i class="fa-solid fa-pencil"></i> Campos editables. Números (tipo doc, cód. banco) alineados a la derecha en el archivo final.</div>
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>#</th><th>Nombre</th>
+                                <th class="the">Tipo Doc (núm) ✎</th>
+                                <th class="the">Nit ✎</th>
+                                <th class="the">Tipo Transac. ✎</th>
+                                <th class="the">Cód Banco ✎</th>
+                                <th class="the">N° Cuenta ✎</th>
+                                <th class="the">Email ✎</th>
+                                <th class="the">Doc Autorizado ✎</th>
+                                <th class="the">Celular ✎</th>
+                                <th class="the" style="text-align:right">Valor ✎</th>
+                                <th>Maestro</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbB"></tbody>
+                        <tfoot>
+                            <tr>
+                                <td colspan="10"><strong>TOTAL</strong></td>
+                                <td class="vr" id="ftB"></td>
+                                <td></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
         </div>
-      </div>
+
+        <div class="button-row" style="padding:14px 0 0;">
+            <button class="btn btn-primary btn-lg" onclick="generarArchivo('bancolombia')">
+                <span class="spinner" id="sp3"></span>
+                <i class="fa-solid fa-download"></i> Generar Bancolombia PAB (.xlsx)
+            </button>
+            <button class="btn btn-secondary" onclick="resetear()"><i class="fa-solid fa-rotate-left"></i> Nuevo archivo</button>
+        </div>
     </div>
-  </div>
-  <div class="brow" style="padding:14px 0 0">
-    <button class="btn btn-r btn-lg" onclick="generarArchivo('santander')">
-      <span class="spin" id="sp2"></span>⬇️ Generar Santander (.xlsm)
-    </button>
-    <button class="btn btn-o" onclick="resetear()">↺ Nuevo archivo</button>
-  </div>
-</div>
-
-<!-- FORMULARIO ENCABEZADO + VISTA PREVIA BANCOLOMBIA -->
-<div id="secBcol" style="display:none">
-
-  <!-- Formulario datos del pagador -->
-  <div class="hdrcard">
-    <div class="hdrcardh">
-      <h3>🏢 Datos del pagador — encabezado del archivo Bancolombia</h3>
-      <p>Estos valores van en la fila 2 del archivo. Todos los campos son obligatorios.</p>
-    </div>
-    <div class="hdrcardb">
-      <div class="valid-banner" id="vbB">⚠️ <span id="vbBmsg"></span></div>
-      <div class="hdrgrid">
-        <div class="field" id="fNit">
-          <label>NIT Pagador <span class="req">*</span></label>
-          <input type="text" id="h_nit" placeholder="900508955" oninput="limpiarErr('fNit')"/>
-          <span class="err-msg">Campo obligatorio</span>
-        </div>
-        <div class="field" id="fTp">
-          <label>Tipo de Pago <span class="req">*</span></label>
-          <select id="h_tp" onchange="limpiarErr('fTp')">
-            <option value="">— Selecciona —</option>
-          </select>
-          <span class="err-msg">Selecciona un tipo de pago</span>
-        </div>
-        <div class="field" id="fAp">
-          <label>Aplicación <span class="req">*</span></label>
-          <select id="h_ap" onchange="limpiarErr('fAp')">
-            <option value="">— Selecciona —</option>
-          </select>
-          <span class="err-msg">Selecciona una aplicación</span>
-        </div>
-        <div class="field" id="fSeq">
-          <label>Secuencia de Envío <span class="req">*</span></label>
-          <input type="text" id="h_seq" placeholder="A2" oninput="limpiarErr('fSeq')"/>
-          <span class="err-msg">Campo obligatorio</span>
-        </div>
-      </div>
-      <div class="hdrgrid2">
-        <div class="field" id="fCta">
-          <label>Nro Cuenta a Debitar <span class="req">*</span></label>
-          <input type="text" id="h_cta" placeholder="16700001881" oninput="limpiarErr('fCta')"/>
-          <span class="err-msg">Campo obligatorio</span>
-        </div>
-        <div class="field" id="fTcd">
-          <label>Tipo Cuenta a Debitar <span class="req">*</span></label>
-          <select id="h_tcd" onchange="limpiarErr('fTcd')">
-            <option value="">— Selecciona —</option>
-          </select>
-          <span class="err-msg">Selecciona un tipo</span>
-        </div>
-        <div class="field" id="fDesc">
-          <label>Descripción del Pago <span class="req">*</span></label>
-          <input type="text" id="h_desc" placeholder="Reembolso" oninput="limpiarErr('fDesc')"/>
-          <span class="err-msg">Campo obligatorio</span>
-        </div>
-        <div class="field" id="fFecha">
-          <label>Fecha de Aplicación <span class="req">*</span></label>
-          <input type="date" id="h_fecha" onchange="limpiarErr('fFecha')"/>
-          <span class="err-msg">Selecciona una fecha</span>
-        </div>
-      </div>
-      <!-- Documento Autorizado global — se aplica a todos los registros -->
-      <div style="margin-top:14px;max-width:420px">
-        <div class="field">
-          <label>Documento Autorizado <small style="color:#6b7280;font-weight:400">(se aplica a todos los registros)</small></label>
-          <input type="text" id="h_doc_aut" placeholder="Ej: número de autorización" oninput="aplicarDocAut()"/>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Preview Bancolombia -->
-  <div class="secbox" style="margin-top:16px">
-    <div class="sech-n">🔄 Vista Previa — Bancolombia / PAB <span class="total-tag" id="btotal"></span></div>
-    <div class="secbody">
-      <div class="sgrid" id="sgridB"></div>
-      <div class="editinfo blue">✏️ Campos editables. Números (tipo doc, cód. banco) alineados a la derecha en el archivo final.</div>
-      <div class="tw">
-        <table>
-          <thead><tr>
-            <th>#</th><th>Nombre</th>
-            <th class="the">Tipo Doc (núm) ✎</th>
-            <th class="the">Nit ✎</th>
-            <th class="the">Tipo Transac. ✎</th>
-            <th class="the">Cód Banco ✎</th>
-            <th class="the">N° Cuenta ✎</th>
-            <th class="the">Email ✎</th>
-            <th class="the">Doc Autorizado ✎</th>
-            <th class="the">Celular ✎</th>
-            <th class="the" style="text-align:right">Valor ✎</th>
-            <th>Maestro</th>
-          </tr></thead>
-          <tbody id="tbB"></tbody>
-          <tfoot><tr>
-            <td colspan="10"><strong>TOTAL</strong></td>
-            <td class="vr" id="ftB"></td>
-            <td></td>
-          </tr></tfoot>
-        </table>
-      </div>
-    </div>
-  </div>
-
-  <div class="brow" style="padding:14px 0 0">
-    <button class="btn btn-n btn-lg" onclick="generarArchivo('bancolombia')">
-      <span class="spin" id="sp3"></span>⬇️ Generar Bancolombia PAB (.xlsx)
-    </button>
-    <button class="btn btn-o" onclick="resetear()">↺ Nuevo archivo</button>
-  </div>
-</div>
 
 </main>
 
 <script>
-// ── Estado global ──────────────────────────────────────────────────────────────
-let aEnvio=null, aMaestro=null;
-let datosServ=null;
-let plt='santander';
-let regsS=[], regsB=[];
-let confFalt={};
-let cats={};
+    // ===== ESTADO GLOBAL =====
+    let aEnvio = null, aMaestro = null;
+    let datosServ = null;
+    let plt = 'santander';
+    let regsS = [], regsB = [];
+    let confFalt = {};
+    let cats = {};
 
-// ── Drop zones ─────────────────────────────────────────────────────────────────
-['1','2'].forEach(n=>{
-  const dz=document.getElementById('dz'+n), fi=document.getElementById('fi'+n);
-  const key=n==='1'?'envio':'maestro';
-  dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('over')});
-  dz.addEventListener('dragleave',()=>dz.classList.remove('over'));
-  dz.addEventListener('drop',e=>{e.preventDefault();dz.classList.remove('over');if(e.dataTransfer.files[0])setFile(e.dataTransfer.files[0],'dz'+n,key)});
-  fi.addEventListener('change',()=>{if(fi.files[0])setFile(fi.files[0],'dz'+n,key)});
-});
-function setFile(f,dzId,key){
-  if(key==='envio') aEnvio=f; else aMaestro=f;
-  document.getElementById(dzId).classList.add('has');
-  document.getElementById(dzId==='dz1'?'ft1':'ft2').textContent=f.name;
-  document.getElementById('btnCargar').disabled=!aEnvio;
-}
+    // ===== DROP ZONES (adaptado para mantener diseño de Código 1) =====
+    ['1', '2'].forEach(n => {
+        const dz = document.getElementById('dz' + n);
+        const fi = document.getElementById('fi' + n);
+        const key = n === '1' ? 'envio' : 'maestro';
 
-// ── Paso 1: cargar ─────────────────────────────────────────────────────────────
-async function procesarArchivos(){
-  const btn=document.getElementById('btnCargar'), sp=document.getElementById('sp1');
-  btn.disabled=true; sp.style.display='block';
-  try{
-    const fd=new FormData();
-    fd.append('formato_envio',aEnvio);
-    if(aMaestro) fd.append('maestro_empleados',aMaestro);
-    fd.append('csrfmiddlewaretoken',csrf());
-    const res=await fetch('/preview/',{method:'POST',body:fd});
-    const data=await res.json();
-    if(!res.ok||data.error) throw new Error(data.error||'Error del servidor');
-    datosServ=data;
-    cats={
-      bs:   data.cat_bancos_sant,
-      bb:   data.cat_bancos_bcol,
-      tdK:  data.cat_tdoc_keys,
-      tdL:  data.cat_tdoc_labels,
-      tp:   data.cat_tipos_pago,
-      ap:   data.cat_aplicaciones,
-      tcd:  data.cat_tipos_cta_deb,
-      tdB:  data.cat_tipos_doc_bcol,
-      ttr:  data.cat_tipos_transac,
-      hdr:  data.hdr_default,
-    };
-    poblarSelects();
-    document.getElementById('modalPlt').classList.add('show');
-  }catch(e){ alerta('❌ '+e.message,'err'); }
-  finally{ sp.style.display='none'; btn.disabled=false; }
-}
+        dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('over'); });
+        dz.addEventListener('dragleave', () => dz.classList.remove('over'));
+        dz.addEventListener('drop', e => {
+            e.preventDefault();
+            dz.classList.remove('over');
+            if (e.dataTransfer.files[0]) setFile(e.dataTransfer.files[0], 'dz' + n, key);
+        });
 
-// ── Poblar selects del formulario Bancolombia ──────────────────────────────────
-function poblarSelects(){
-  const hd=cats.hdr;
-  // Tipo de Pago — con descripción completa
-  document.getElementById('h_tp').innerHTML=
-    '<option value="">— Selecciona —</option>'+
-    cats.tp.map(t=>`<option value="${t.val}"${t.val===hd.tipo_pago?' selected':''}>${t.label}</option>`).join('');
-  // Aplicación — con descripción completa
-  document.getElementById('h_ap').innerHTML=
-    '<option value="">— Selecciona —</option>'+
-    cats.ap.map(a=>`<option value="${a.val}"${a.val===hd.aplicacion?' selected':''}>${a.label}</option>`).join('');
-  // Tipo cuenta a debitar — con descripción completa
-  document.getElementById('h_tcd').innerHTML=
-    '<option value="">— Selecciona —</option>'+
-    cats.tcd.map(t=>`<option value="${t.val}"${t.val===hd.tipo_cuenta_debitar?' selected':''}>${t.label}</option>`).join('');
-  // Rellenar campos de texto con defaults
-  document.getElementById('h_nit').value  = hd.nit_pagador||'';
-  document.getElementById('h_seq').value  = hd.secuencia||'A2';
-  document.getElementById('h_cta').value  = hd.nro_cuenta_debitar||'';
-  document.getElementById('h_desc').value = hd.descripcion||'Reembolso';
-}
-
-// ── Modal selección ────────────────────────────────────────────────────────────
-function elegirPlt(p){
-  plt=p;
-  document.getElementById('pc-s').classList.toggle('active',p==='santander');
-  document.getElementById('pc-b').classList.toggle('active',p==='bancolombia');
-}
-function confirmarPlt(){
-  document.getElementById('modalPlt').classList.remove('show');
-  if(datosServ.faltantes?.length>0){
-    mostrarFaltantes(datosServ.faltantes);
-    alerta(`⚠️ ${datosServ.faltantes.length} empleado(s) sin datos bancarios. Completa el formulario.`,'warn');
-  }else{
-    iniciarPreview(datosServ.registros);
-  }
-}
-
-// ── Formulario faltantes ───────────────────────────────────────────────────────
-function mostrarFaltantes(falt){
-  document.getElementById('secFalt').style.display='block';
-  const body=document.getElementById('mBody');
-  body.innerHTML='';
-  falt.forEach(emp=>{
-    const id=emp.doc.replace(/\W/g,'_');
-    const div=document.createElement('div');
-    div.className='ecard';
-    div.innerHTML=`
-      <div class="etop">
-        <div><div class="ename">📋 ${emp.nombre}</div><div class="emeta">${emp.doc} · ${emp.empresa}</div></div>
-        <div class="eval">$${fmt(emp.valor)}</div>
-      </div>
-      <div class="egrid5">
-        <div class="field"><label>Tipo Documento</label>
-          <select id="m_td_${id}">${cats.tdK.map((k,i)=>`<option value="${k}"${k===(emp.tipo_doc||'CC')?' selected':''}>${cats.tdL[i]}</option>`).join('')}</select></div>
-        <div class="field"><label>Banco Santander</label>
-          <select id="m_bs_${id}"><option value="">— Sin banco —</option>${cats.bs.map(b=>`<option value="${b}">${b}</option>`).join('')}</select></div>
-        <div class="field"><label>Banco Bancolombia</label>
-          <select id="m_bb_${id}"><option value="">— Sin banco —</option>${cats.bb.map(b=>`<option value="${b.nombre}">${b.nombre}</option>`).join('')}</select></div>
-        <div class="field"><label>Tipo Cuenta</label>
-          <select id="m_tc_${id}"><option value="AHORROS" selected>AHORROS</option><option value="CORRIENTE">CORRIENTE</option></select></div>
-        <div class="field"><label>N° Cuenta <span class="req">*</span></label>
-          <input type="text" id="m_nc_${id}" placeholder="Número de cuenta"/></div>
-      </div>`;
-    div._doc=emp.doc; div._val=emp.valor; div._num=emp.numero;
-    body.appendChild(div);
-  });
-  document.getElementById('secFalt').scrollIntoView({behavior:'smooth'});
-}
-function confirmarFalt(){
-  const falt=datosServ.faltantes;
-  confFalt={};
-  const err=[];
-  falt.forEach(emp=>{
-    const id=emp.doc.replace(/\W/g,'_');
-    const nc=document.getElementById('m_nc_'+id)?.value?.trim()||'';
-    if(!nc){err.push(emp.nombre);return;}
-    const bnom=document.getElementById('m_bb_'+id)?.value||'';
-    const bcod_obj=cats.bb.find(b=>b.nombre===bnom);
-    confFalt[emp.doc]={
-      tipo_doc:    document.getElementById('m_td_'+id)?.value||'CC',
-      banco_sant:  document.getElementById('m_bs_'+id)?.value||'',
-      banco_nom:   bnom,
-      banco_cod:   bcod_obj?.codigo||null,
-      tipo_cuenta: document.getElementById('m_tc_'+id)?.value||'AHORROS',
-      num_cuenta:  nc,
-      valor:       emp.valor,
-    };
-  });
-  if(err.length){alerta('❌ Falta N° de cuenta: '+err.join(', '),'err');return;}
-  document.getElementById('secFalt').style.display='none';
-  iniciarPreview(aplicarManualJS(datosServ.registros,confFalt));
-  alerta('✅ Datos completados.','ok');
-}
-function saltarFalt(){
-  document.getElementById('secFalt').style.display='none';
-  iniciarPreview(datosServ.registros);
-}
-
-// ── Aplicar datos manuales en JS ───────────────────────────────────────────────
-function aplicarManualJS(regs,manual){
-  return regs.map(r=>{
-    const m=manual[r.documento];
-    if(!m) return r;
-    const td=TDM[m.tipo_doc?.toUpperCase()]||{t:'01 - CEDULA CIUDADANIA (CC)',n:1};
-    return{...r,
-      banco_sant:  m.banco_sant||r.banco_sant,
-      banco_nom:   m.banco_nom||r.banco_nom||'',
-      banco_cod:   m.banco_cod||r.banco_cod||null,
-      banco_mapeado: !!m.banco_sant,
-      tipo_cuenta: m.tipo_cuenta||r.tipo_cuenta,
-      num_cuenta:  m.num_cuenta||r.num_cuenta,
-      tipo_doc_texto: td.t, tipo_doc_num: td.n,
-      tipo_doc_key: m.tipo_doc?.toUpperCase()||r.tipo_doc_key,
-      encontrado: true,
-    };
-  });
-}
-
-// ── Preview ────────────────────────────────────────────────────────────────────
-function iniciarPreview(regs){
-  regsS=regs.map(r=>({...r}));
-  regsB=regs.map(r=>({...r}));
-  if(plt==='santander'){
-    renderSantander();
-    document.getElementById('secBcol').style.display='none';
-  }else{
-    renderBancolombia();
-    document.getElementById('secSant').style.display='none';
-  }
-}
-
-// Santander
-function renderSantander(){
-  const d=datosServ;
-  document.getElementById('sgridS').innerHTML=stats(d);
-  document.getElementById('stotal').textContent='Total: $'+fmt(calcT(regsS));
-  const tb=document.getElementById('tbS');
-  tb.innerHTML='';
-  regsS.forEach((r,idx)=>{
-    const warn=!r.encontrado||!r.banco_mapeado;
-    const tr=document.createElement('tr');
-    if(warn) tr.className='trw';
-    const sig=(r.tipo_doc_texto.match(/\((\w+)\)/)||['',''])[1]||r.tipo_doc_texto;
-    const ref=d.consecutivo?`Reembolso ${d.consecutivo}`:'';
-    tr.innerHTML=`
-      <td>${r.numero}</td>
-      <td><strong>${r.nombre}</strong><br><small style="color:#9ca3af">${r.empresa}</small></td>
-      <td class="tde">
-        <select onchange="eS(${idx},'tipo_doc_key',this.value);syncTDS(${idx},this.value)">
-          ${cats.tdK.map((k,i)=>`<option value="${k}"${k===sig?' selected':''}>${cats.tdL[i]}</option>`).join('')}
-        </select>
-      </td>
-      <td class="tde"><input value="${r.documento}" onchange="eS(${idx},'documento',this.value)" onblur="mc(this)"/></td>
-      <td class="tde">
-        <select onchange="eS(${idx},'banco_sant',this.value);eS(${idx},'banco_mapeado',!!this.value)" style="min-width:150px">
-          <option value="${r.banco_sant}">${r.banco_sant||'— Sin banco —'}</option>
-          ${cats.bs.filter(b=>b!==r.banco_sant).map(b=>`<option value="${b}">${b}</option>`).join('')}
-        </select>
-      </td>
-      <td class="tde">
-        <select onchange="eS(${idx},'tipo_cuenta',this.value)">
-          <option value="AHORROS"${r.tipo_cuenta==='AHORROS'?' selected':''}>AHORROS</option>
-          <option value="CORRIENTE"${r.tipo_cuenta==='CORRIENTE'?' selected':''}>CORRIENTE</option>
-        </select>
-      </td>
-      <td class="tde"><input value="${r.num_cuenta||''}" placeholder="N° cuenta" onchange="eS(${idx},'num_cuenta',this.value)" onblur="mc(this)"/></td>
-      <td class="tde vr"><input type="number" value="${r.valor}" step="0.01" style="text-align:right;min-width:85px"
-        onchange="eS(${idx},'valor',parseFloat(this.value)||0);updTS()" onblur="mc(this)"/></td>
-      <td class="tde"><input value="${ref}" placeholder="Referencia" id="refRow_${idx}" onchange="mc(this)"/></td>
-      <td class="tde"><input value="${r.email||''}" placeholder="Email" style="min-width:150px"
-        onchange="eS(${idx},'email',this.value)" onblur="mc(this)"/></td>
-      <td style="font-size:.75rem;color:#374151;text-align:center" id="docAutCell_${idx}">${r.doc_autorizado||'—'}</td>
-      <td class="tde"><input value="${r.celular||''}" placeholder="Celular"
-        onchange="eS(${idx},'celular',this.value)" onblur="mc(this)"/></td>
-      <td><span class="badge ${r.encontrado?'bok':'bwn'}">${r.encontrado?'✓':'⚠'}</span></td>`;
-    tb.appendChild(tr);
-  });
-  // Pre-llenar referencia global
-  if(d.consecutivo) document.getElementById('ref_s').value=`Reembolso ${d.consecutivo}`;
-  updTS();
-  document.getElementById('secSant').style.display='block';
-  document.getElementById('secSant').scrollIntoView({behavior:'smooth'});
-}
-function eS(i,f,v){regsS[i][f]=v;}
-function syncTDS(i,key){const td=TDM[key.toUpperCase()]||{t:'01 - CEDULA CIUDADANIA (CC)',n:1};regsS[i].tipo_doc_texto=td.t;regsS[i].tipo_doc_num=td.n;}
-function updTS(){const t=calcT(regsS);document.getElementById('ftS').textContent='$'+fmt(t);document.getElementById('stotal').textContent='Total: $'+fmt(t);}
-// Aplica el mismo Documento Autorizado a todos los registros Santander
-function aplicarDocAut(val){
-  regsS.forEach((r,idx)=>{
-    r.doc_autorizado=val;
-    const cell=document.getElementById('docAutCell_'+idx);
-    if(cell) cell.textContent=val||'—';
-  });
-}
-
-// Bancolombia
-function renderBancolombia(){
-  const d=datosServ;
-  document.getElementById('sgridB').innerHTML=stats(d);
-  document.getElementById('btotal').textContent='Total: $'+fmt(calcT(regsB));
-  const tb=document.getElementById('tbB');
-  tb.innerHTML='';
-  regsB.forEach((r,idx)=>{
-    const warn=!r.encontrado||!r.banco_mapeado;
-    const tr=document.createElement('tr');
-    if(warn) tr.className='trw';
-    const tdNum=r.tipo_doc_num||1;
-    const bancoNom=r.banco_nom||'';
-    const bancoCod=r.banco_cod||'';
-    // Tipo transaccion selector
-    const ttrOpts=cats.ttr.map(t=>`<option value="${t.val}"${t.val===37?' selected':''}>${t.label}</option>`).join('');
-    tr.innerHTML=`
-      <td>${r.numero}</td>
-      <td><strong>${r.nombre}</strong><br><small style="color:#9ca3af">${r.empresa}</small></td>
-      <td class="tde" style="text-align:right">
-        <select onchange="eB(${idx},'tipo_doc_num',parseInt(this.value));eB(${idx},'tipo_doc_key',this.options[this.selectedIndex].dataset.k)" style="min-width:130px">
-          ${cats.tdB.map(t=>`<option value="${t.val}" data-k="${cats.tdK[t.val-1]||'CC'}" ${t.val===tdNum?' selected':''}>${t.label}</option>`).join('')}
-        </select>
-      </td>
-      <td class="tde"><input value="${r.documento}" onchange="eB(${idx},'documento',this.value)" onblur="mc(this)"/></td>
-      <td class="tde" style="text-align:right">
-        <select onchange="eB(${idx},'tipo_transaccion',parseInt(this.value))" style="min-width:200px">
-          ${ttrOpts}
-        </select>
-      </td>
-      <td class="tde" style="text-align:right">
-        <select onchange="eB(${idx},'banco_cod',this.value?parseInt(this.value):null);eB(${idx},'banco_nom',this.options[this.selectedIndex].dataset.nom)" style="min-width:150px">
-          <option value="${bancoCod}" data-nom="${bancoNom}">${bancoCod?bancoCod+' — '+bancoNom:'— Sin banco —'}</option>
-          ${cats.bb.filter(b=>b.codigo!==bancoCod).map(b=>`<option value="${b.codigo}" data-nom="${b.nombre}">${b.codigo} — ${b.nombre}</option>`).join('')}
-        </select>
-      </td>
-      <td class="tde"><input value="${r.num_cuenta||''}" placeholder="N° cuenta" onchange="eB(${idx},'num_cuenta',this.value)" onblur="mc(this)"/></td>
-      <td class="tde"><input value="${r.email||''}" placeholder="Email" onchange="eB(${idx},'email',this.value)" onblur="mc(this)" style="min-width:140px"/></td>
-      <td class="tde"><input value="${r.doc_autorizado||''}" placeholder="Doc. autorizado" onchange="eB(${idx},'doc_autorizado',this.value)" onblur="mc(this)" id="docAut_${idx}"/></td>
-      <td class="tde"><input value="${r.celular||''}" placeholder="Celular" onchange="eB(${idx},'celular',this.value)" onblur="mc(this)"/></td>
-      <td class="tde vr"><input type="number" value="${r.valor}" step="0.01" style="text-align:right;min-width:80px"
-        onchange="eB(${idx},'valor',parseFloat(this.value)||0);updTB()" onblur="mc(this)"/></td>
-      <td><span class="badge ${r.encontrado?'bok':'bwn'}">${r.encontrado?'✓':'⚠'}</span></td>`;
-    tb.appendChild(tr);
-  });
-  updTB();
-  document.getElementById('secBcol').style.display='block';
-  document.getElementById('secBcol').scrollIntoView({behavior:'smooth'});
-}
-function eB(i,f,v){regsB[i][f]=v;}
-function updTB(){const t=calcT(regsB);document.getElementById('ftB').textContent='$'+fmt(t);document.getElementById('btotal').textContent='Total: $'+fmt(t);}
-// Aplica el Documento Autorizado global a todas las filas de Bancolombia
-function aplicarDocAut(){
-  const val=document.getElementById('h_doc_aut')?.value||'';
-  regsB.forEach((r,idx)=>{
-    r.doc_autorizado=val;
-    const el=document.getElementById('docAut_'+idx);
-    if(el){ el.value=val; el.classList.add('ch'); }
-  });
-}
-
-// ── Validación de campos requeridos ────────────────────────────────────────────
-function validarSantander(){
-  let ok=true, msgs=[];
-  const ref=document.getElementById('ref_s').value.trim();
-  if(!ref){ marcarErr('fRefS'); ok=false; msgs.push('Referencia del pago'); }
-  const docAut=document.getElementById('doc_aut_global').value.trim();
-  if(!docAut){ marcarErr('fDocAut'); ok=false; msgs.push('Documento Autorizado'); }
-  // Validar que todos tengan N° cuenta
-  regsS.forEach(r=>{
-    if(!r.num_cuenta){ok=false; msgs.push(`N° cuenta de ${r.nombre}`);}
-  });
-  if(!ok){
-    const vb=document.getElementById('vbS');
-    document.getElementById('vbSmsg').textContent='Campos obligatorios: '+msgs.join(', ');
-    vb.classList.add('show');
-    vb.scrollIntoView({behavior:'smooth',block:'center'});
-  }else{
-    document.getElementById('vbS').classList.remove('show');
-  }
-  return ok;
-}
-
-function validarBancolombia(){
-  const campos=[
-    {id:'fNit',  elId:'h_nit',   tipo:'input'},
-    {id:'fTp',   elId:'h_tp',    tipo:'select'},
-    {id:'fAp',   elId:'h_ap',    tipo:'select'},
-    {id:'fSeq',  elId:'h_seq',   tipo:'input'},
-    {id:'fCta',  elId:'h_cta',   tipo:'input'},
-    {id:'fTcd',  elId:'h_tcd',   tipo:'select'},
-    {id:'fDesc', elId:'h_desc',  tipo:'input'},
-    {id:'fFecha',elId:'h_fecha', tipo:'input'},
-  ];
-  let ok=true, msgs=[];
-  campos.forEach(c=>{
-    const el=document.getElementById(c.elId);
-    const val=el?.value?.trim()||'';
-    if(!val){marcarErr(c.id);ok=false; msgs.push(document.querySelector(`#${c.id} label`).textContent.replace('*','').trim());}
-  });
-  // Validar N° cuenta en registros
-  regsB.forEach(r=>{
-    if(!r.num_cuenta){ok=false; msgs.push(`N° cuenta de ${r.nombre}`);}
-  });
-  if(!ok){
-    const vb=document.getElementById('vbB');
-    document.getElementById('vbBmsg').textContent='Campos obligatorios: '+msgs.join(', ');
-    vb.classList.add('show');
-    vb.scrollIntoView({behavior:'smooth',block:'center'});
-  }else{
-    document.getElementById('vbB').classList.remove('show');
-  }
-  return ok;
-}
-
-function marcarErr(fieldId){document.getElementById(fieldId).classList.add('has-err');}
-function limpiarErr(fieldId){document.getElementById(fieldId).classList.remove('has-err');}
-
-// ── Generar archivo ────────────────────────────────────────────────────────────
-async function generarArchivo(p){
-  if(!aEnvio) return;
-
-  // Validar campos antes de continuar
-  if(p==='santander' && !validarSantander()) return;
-  if(p==='bancolombia' && !validarBancolombia()) return;
-
-  // Mostrar loading
-  document.getElementById('ltitle').textContent=p==='santander'?'Generando Santander…':'Generando Bancolombia PAB…';
-  document.getElementById('lmsg').textContent='Procesando datos y aplicando la plantilla bancaria';
-  document.getElementById('loadov').classList.add('show');
-
-  try{
-    const manuales={...confFalt};
-    const regs=p==='santander'?regsS:regsB;
-    // Para Santander: aplicar doc_autorizado global a todos los registros antes de construir manuales
-    if(p==='santander'){
-      const docAut=document.getElementById('doc_aut_global')?.value?.trim()||'';
-      regsS.forEach(r=>{ r.doc_autorizado=docAut; });
-    }
-    regs.forEach(r=>{
-      manuales[r.documento]={
-        tipo_doc:         TDRV[r.tipo_doc_texto]||r.tipo_doc_key||'CC',
-        banco_sant:       r.banco_sant||'',
-        banco_nom:        r.banco_nom||'',
-        tipo_cuenta:      r.tipo_cuenta,
-        num_cuenta:       r.num_cuenta,
-        valor:            r.valor,
-        email:            r.email||'',
-        celular:          r.celular||'',
-        doc_autorizado:   r.doc_autorizado||'',
-        tipo_transaccion: r.tipo_transaccion||37,
-      };
+        fi.addEventListener('change', () => {
+            if (fi.files[0]) setFile(fi.files[0], 'dz' + n, key);
+        });
     });
 
-    const ref=p==='santander'
-      ? (document.getElementById('ref_s')?.value?.trim()||`Reembolso ${datosServ.consecutivo||''}`)
-      : (document.getElementById('h_desc')?.value?.trim()||'Reembolso');
+    function setFile(file, dzId, key) {
+        // Actualizar variable según corresponda
+        if (key === 'envio') aEnvio = file; else aMaestro = file;
 
-    const hdr={
-      nit_pagador:         document.getElementById('h_nit')?.value||'',
-      tipo_pago:           document.getElementById('h_tp')?.value||'',
-      aplicacion:          document.getElementById('h_ap')?.value||'',
-      secuencia:           document.getElementById('h_seq')?.value||'',
-      nro_cuenta_debitar:  document.getElementById('h_cta')?.value||'',
-      tipo_cuenta_debitar: document.getElementById('h_tcd')?.value||'',
-      descripcion:         ref,
-      fecha_aplicacion:    document.getElementById('h_fecha')?.value||'',
+        const dz = document.getElementById(dzId);
+        const num = dzId === 'dz1' ? '1' : '2';
+        const nombreSpan = document.getElementById('nombre' + num);
+        const tamanoSpan = document.getElementById('tamano' + num);
+        const checkDiv = document.getElementById('check' + num);
+        const ftSpan = document.getElementById('ft' + num);
+
+        // Actualizar nombre y tamaño
+        nombreSpan.textContent = file.name;
+        const kb = (file.size / 1024).toFixed(1);
+        const size = kb > 1024 ? (kb / 1024).toFixed(2) + ' MB' : kb + ' KB';
+        tamanoSpan.textContent = size;
+        // Para compatibilidad con código 2
+        if (ftSpan) ftSpan.textContent = file.name;
+
+        // Marcar como tiene archivo
+        dz.classList.add('has');  // clase usada por JS de código 2
+        dz.classList.add('has-file'); // clase usada por CSS de código 1
+
+        // Mostrar animación check
+        checkDiv.style.display = 'block';
+        const circle = checkDiv.querySelector('.check-circle');
+        circle.style.animation = 'none';
+        circle.querySelector('i').style.animation = 'none';
+        void circle.offsetWidth; // reflow
+        circle.style.animation = '';
+        circle.querySelector('i').style.animation = '';
+
+        // Habilitar botón de cargar si ya tenemos el archivo de envío
+        document.getElementById('btnCargar').disabled = !aEnvio;
+    }
+
+    // ===== PROCESAR ARCHIVOS =====
+    async function procesarArchivos() {
+        const btn = document.getElementById('btnCargar'), sp = document.getElementById('sp1');
+        btn.disabled = true; sp.style.display = 'inline-block';
+        try {
+            const fd = new FormData();
+            fd.append('formato_envio', aEnvio);
+            if (aMaestro) fd.append('maestro_empleados', aMaestro);
+            fd.append('csrfmiddlewaretoken', csrf());
+            const res = await fetch('/preview/', { method: 'POST', body: fd });
+            const data = await res.json();
+            if (!res.ok || data.error) throw new Error(data.error || 'Error del servidor');
+            datosServ = data;
+            cats = {
+                bs: data.cat_bancos_sant,
+                bb: data.cat_bancos_bcol,
+                tdK: data.cat_tdoc_keys,
+                tdL: data.cat_tdoc_labels,
+                tp: data.cat_tipos_pago,
+                ap: data.cat_aplicaciones,
+                tcd: data.cat_tipos_cta_deb,
+                tdB: data.cat_tipos_doc_bcol,
+                ttr: data.cat_tipos_transac,
+                hdr: data.hdr_default,
+            };
+            poblarSelects();
+            document.getElementById('modalPlt').classList.add('show');
+        } catch (e) { alerta('❌ ' + e.message, 'err'); }
+        finally { sp.style.display = 'none'; btn.disabled = false; }
+    }
+
+    function poblarSelects() {
+        const hd = cats.hdr;
+        document.getElementById('h_tp').innerHTML =
+            '<option value="">— Selecciona —</option>' +
+            cats.tp.map(t => `<option value="${t.val}"${t.val === hd.tipo_pago ? ' selected' : ''}>${t.label}</option>`).join('');
+        document.getElementById('h_ap').innerHTML =
+            '<option value="">— Selecciona —</option>' +
+            cats.ap.map(a => `<option value="${a.val}"${a.val === hd.aplicacion ? ' selected' : ''}>${a.label}</option>`).join('');
+        document.getElementById('h_tcd').innerHTML =
+            '<option value="">— Selecciona —</option>' +
+            cats.tcd.map(t => `<option value="${t.val}"${t.val === hd.tipo_cuenta_debitar ? ' selected' : ''}>${t.label}</option>`).join('');
+        document.getElementById('h_nit').value = hd.nit_pagador || '';
+        document.getElementById('h_seq').value = hd.secuencia || 'A2';
+        document.getElementById('h_cta').value = hd.nro_cuenta_debitar || '';
+        document.getElementById('h_desc').value = hd.descripcion || 'Reembolso';
+    }
+
+    // ===== MODAL SELECCIÓN =====
+    function elegirPlt(p) {
+        plt = p;
+        document.getElementById('pc-s').classList.toggle('active', p === 'santander');
+        document.getElementById('pc-b').classList.toggle('active', p === 'bancolombia');
+    }
+
+    function confirmarPlt() {
+        document.getElementById('modalPlt').classList.remove('show');
+        if (datosServ.faltantes?.length > 0) {
+            mostrarFaltantes(datosServ.faltantes);
+            alerta(`⚠️ ${datosServ.faltantes.length} empleado(s) sin datos bancarios. Completa el formulario.`, 'warn');
+        } else {
+            iniciarPreview(datosServ.registros);
+        }
+    }
+
+    // ===== FORMULARIO FALTANTES =====
+    function mostrarFaltantes(falt) {
+        document.getElementById('secFalt').style.display = 'block';
+        const body = document.getElementById('mBody');
+        body.innerHTML = '';
+        falt.forEach(emp => {
+            const id = emp.doc.replace(/\W/g, '_');
+            const div = document.createElement('div');
+            div.className = 'ecard';
+            div.innerHTML = `
+                <div class="etop">
+                    <div>
+                        <div class="ename"><i class="fa-solid fa-user"></i> ${emp.nombre}</div>
+                        <div class="emeta">${emp.doc} · ${emp.empresa}</div>
+                    </div>
+                    <div class="eval">$${fmt(emp.valor)}</div>
+                </div>
+                <div class="egrid5">
+                    <div class="field"><label>Tipo Documento</label>
+                        <select id="m_td_${id}">${cats.tdK.map((k, i) => `<option value="${k}"${k === (emp.tipo_doc || 'CC') ? ' selected' : ''}>${cats.tdL[i]}</option>`).join('')}</select>
+                    </div>
+                    <div class="field"><label>Banco Santander</label>
+                        <select id="m_bs_${id}"><option value="">— Sin banco —</option>${cats.bs.map(b => `<option value="${b}">${b}</option>`).join('')}</select>
+                    </div>
+                    <div class="field"><label>Banco Bancolombia</label>
+                        <select id="m_bb_${id}"><option value="">— Sin banco —</option>${cats.bb.map(b => `<option value="${b.nombre}">${b.nombre}</option>`).join('')}</select>
+                    </div>
+                    <div class="field"><label>Tipo Cuenta</label>
+                        <select id="m_tc_${id}"><option value="AHORROS" selected>AHORROS</option><option value="CORRIENTE">CORRIENTE</option></select>
+                    </div>
+                    <div class="field"><label>N° Cuenta <span class="required">*</span></label>
+                        <input type="text" id="m_nc_${id}" placeholder="Número de cuenta"></div>
+                </div>`;
+            div._doc = emp.doc; div._val = emp.valor; div._num = emp.numero;
+            body.appendChild(div);
+        });
+        document.getElementById('secFalt').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function confirmarFalt() {
+        const falt = datosServ.faltantes;
+        confFalt = {};
+        const err = [];
+        falt.forEach(emp => {
+            const id = emp.doc.replace(/\W/g, '_');
+            const nc = document.getElementById('m_nc_' + id)?.value?.trim() || '';
+            if (!nc) { err.push(emp.nombre); return; }
+            const bnom = document.getElementById('m_bb_' + id)?.value || '';
+            const bcod_obj = cats.bb.find(b => b.nombre === bnom);
+            confFalt[emp.doc] = {
+                tipo_doc: document.getElementById('m_td_' + id)?.value || 'CC',
+                banco_sant: document.getElementById('m_bs_' + id)?.value || '',
+                banco_nom: bnom,
+                banco_cod: bcod_obj?.codigo || null,
+                tipo_cuenta: document.getElementById('m_tc_' + id)?.value || 'AHORROS',
+                num_cuenta: nc,
+                valor: emp.valor,
+            };
+        });
+        if (err.length) { alerta('❌ Falta N° de cuenta: ' + err.join(', '), 'err'); return; }
+        document.getElementById('secFalt').style.display = 'none';
+        iniciarPreview(aplicarManualJS(datosServ.registros, confFalt));
+        alerta('✅ Datos completados.', 'ok');
+    }
+
+    function saltarFalt() {
+        document.getElementById('secFalt').style.display = 'none';
+        iniciarPreview(datosServ.registros);
+    }
+
+    function aplicarManualJS(regs, manual) {
+        return regs.map(r => {
+            const m = manual[r.documento];
+            if (!m) return r;
+            const td = TDM[m.tipo_doc?.toUpperCase()] || { t: '01 - CEDULA CIUDADANIA (CC)', n: 1 };
+            return {
+                ...r,
+                banco_sant: m.banco_sant || r.banco_sant,
+                banco_nom: m.banco_nom || r.banco_nom || '',
+                banco_cod: m.banco_cod || r.banco_cod || null,
+                banco_mapeado: !!m.banco_sant,
+                tipo_cuenta: m.tipo_cuenta || r.tipo_cuenta,
+                num_cuenta: m.num_cuenta || r.num_cuenta,
+                tipo_doc_texto: td.t, tipo_doc_num: td.n,
+                tipo_doc_key: m.tipo_doc?.toUpperCase() || r.tipo_doc_key,
+                encontrado: true,
+            };
+        });
+    }
+
+    // ===== PREVIEW =====
+    function iniciarPreview(regs) {
+        regsS = regs.map(r => ({ ...r }));
+        regsB = regs.map(r => ({ ...r }));
+        if (plt === 'santander') {
+            renderSantander();
+            document.getElementById('secBcol').style.display = 'none';
+        } else {
+            renderBancolombia();
+            document.getElementById('secSant').style.display = 'none';
+        }
+    }
+
+    function renderSantander() {
+        const d = datosServ;
+        document.getElementById('sgridS').innerHTML = stats(d);
+        document.getElementById('stotal').textContent = 'Total: $' + fmt(calcT(regsS));
+        const tb = document.getElementById('tbS');
+        tb.innerHTML = '';
+        regsS.forEach((r, idx) => {
+            const warn = !r.encontrado || !r.banco_mapeado;
+            const tr = document.createElement('tr');
+            if (warn) tr.className = 'trw';
+            const sig = (r.tipo_doc_texto.match(/\((\w+)\)/) || ['', ''])[1] || r.tipo_doc_texto;
+            const ref = d.consecutivo ? `Reembolso ${d.consecutivo}` : '';
+            tr.innerHTML = `
+                <td>${r.numero}</td>
+                <td><strong>${r.nombre}</strong><br><small style="color:#9ca3af">${r.empresa}</small></td>
+                <td class="tde">
+                    <select onchange="eS(${idx},'tipo_doc_key',this.value);syncTDS(${idx},this.value)">
+                        ${cats.tdK.map((k, i) => `<option value="${k}"${k === sig ? ' selected' : ''}>${cats.tdL[i]}</option>`).join('')}
+                    </select>
+                </td>
+                <td class="tde"><input value="${r.documento}" onchange="eS(${idx},'documento',this.value)" onblur="mc(this)"></td>
+                <td class="tde">
+                    <select onchange="eS(${idx},'banco_sant',this.value);eS(${idx},'banco_mapeado',!!this.value)" style="min-width:150px">
+                        <option value="${r.banco_sant}">${r.banco_sant || '— Sin banco —'}</option>
+                        ${cats.bs.filter(b => b !== r.banco_sant).map(b => `<option value="${b}">${b}</option>`).join('')}
+                    </select>
+                </td>
+                <td class="tde">
+                    <select onchange="eS(${idx},'tipo_cuenta',this.value)">
+                        <option value="AHORROS"${r.tipo_cuenta === 'AHORROS' ? ' selected' : ''}>AHORROS</option>
+                        <option value="CORRIENTE"${r.tipo_cuenta === 'CORRIENTE' ? ' selected' : ''}>CORRIENTE</option>
+                    </select>
+                </td>
+                <td class="tde"><input value="${r.num_cuenta || ''}" placeholder="N° cuenta" onchange="eS(${idx},'num_cuenta',this.value)" onblur="mc(this)"></td>
+                <td class="tde vr"><input type="number" value="${r.valor}" step="0.01" style="text-align:right;min-width:85px" onchange="eS(${idx},'valor',parseFloat(this.value)||0);updTS()" onblur="mc(this)"></td>
+                <td class="tde"><input value="${ref}" placeholder="Referencia" id="refRow_${idx}" onchange="mc(this)"></td>
+                <td class="tde"><input value="${r.email || ''}" placeholder="Email" onchange="eS(${idx},'email',this.value)" onblur="mc(this)"></td>
+                <td class="tde"><input value="${r.celular || ''}" placeholder="Celular" onchange="eS(${idx},'celular',this.value)" onblur="mc(this)"></td>
+                <td><span class="badge ${r.encontrado ? 'badge-success' : 'badge-warning'}">${r.encontrado ? '✓' : '⚠'}</span></td>`;
+            tb.appendChild(tr);
+        });
+        if (d.consecutivo) document.getElementById('ref_s').value = `Reembolso ${d.consecutivo}`;
+        updTS();
+        document.getElementById('secSant').style.display = 'block';
+        document.getElementById('secSant').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function eS(i, f, v) { regsS[i][f] = v; }
+    function syncTDS(i, key) { const td = TDM[key.toUpperCase()] || { t: '01 - CEDULA CIUDADANIA (CC)', n: 1 }; regsS[i].tipo_doc_texto = td.t; regsS[i].tipo_doc_num = td.n; }
+    function updTS() { const t = calcT(regsS); document.getElementById('ftS').textContent = '$' + fmt(t); document.getElementById('stotal').textContent = 'Total: $' + fmt(t); }
+
+    function renderBancolombia() {
+        const d = datosServ;
+        document.getElementById('sgridB').innerHTML = stats(d);
+        document.getElementById('btotal').textContent = 'Total: $' + fmt(calcT(regsB));
+        const tb = document.getElementById('tbB');
+        tb.innerHTML = '';
+        regsB.forEach((r, idx) => {
+            const warn = !r.encontrado || !r.banco_mapeado;
+            const tr = document.createElement('tr');
+            if (warn) tr.className = 'trw';
+            const tdNum = r.tipo_doc_num || 1;
+            const bancoNom = r.banco_nom || '';
+            const bancoCod = r.banco_cod || '';
+            const ttrOpts = cats.ttr.map(t => `<option value="${t.val}"${t.val === 37 ? ' selected' : ''}>${t.label}</option>`).join('');
+            tr.innerHTML = `
+                <td>${r.numero}</td>
+                <td><strong>${r.nombre}</strong><br><small style="color:#9ca3af">${r.empresa}</small></td>
+                <td class="tde" style="text-align:right">
+                    <select onchange="eB(${idx},'tipo_doc_num',parseInt(this.value));eB(${idx},'tipo_doc_key',this.options[this.selectedIndex].dataset.k)" style="min-width:130px">
+                        ${cats.tdB.map(t => `<option value="${t.val}" data-k="${cats.tdK[t.val - 1] || 'CC'}" ${t.val === tdNum ? ' selected' : ''}>${t.label}</option>`).join('')}
+                    </select>
+                </td>
+                <td class="tde"><input value="${r.documento}" onchange="eB(${idx},'documento',this.value)" onblur="mc(this)"></td>
+                <td class="tde" style="text-align:right">
+                    <select onchange="eB(${idx},'tipo_transaccion',parseInt(this.value))" style="min-width:200px">
+                        ${ttrOpts}
+                    </select>
+                </td>
+                <td class="tde" style="text-align:right">
+                    <select onchange="eB(${idx},'banco_cod',this.value?parseInt(this.value):null);eB(${idx},'banco_nom',this.options[this.selectedIndex].dataset.nom)" style="min-width:150px">
+                        <option value="${bancoCod}" data-nom="${bancoNom}">${bancoCod ? bancoCod + ' — ' + bancoNom : '— Sin banco —'}</option>
+                        ${cats.bb.filter(b => b.codigo !== bancoCod).map(b => `<option value="${b.codigo}" data-nom="${b.nombre}">${b.codigo} — ${b.nombre}</option>`).join('')}
+                    </select>
+                </td>
+                <td class="tde"><input value="${r.num_cuenta || ''}" placeholder="N° cuenta" onchange="eB(${idx},'num_cuenta',this.value)" onblur="mc(this)"></td>
+                <td class="tde"><input value="${r.email || ''}" placeholder="Email" onchange="eB(${idx},'email',this.value)" onblur="mc(this)"></td>
+                <td class="tde"><input value="${r.doc_autorizado || ''}" placeholder="Doc. autorizado" onchange="eB(${idx},'doc_autorizado',this.value)" onblur="mc(this)" id="docAut_${idx}"></td>
+                <td class="tde"><input value="${r.celular || ''}" placeholder="Celular" onchange="eB(${idx},'celular',this.value)" onblur="mc(this)"></td>
+                <td class="tde vr"><input type="number" value="${r.valor}" step="0.01" style="text-align:right;min-width:80px" onchange="eB(${idx},'valor',parseFloat(this.value)||0);updTB()" onblur="mc(this)"></td>
+                <td><span class="badge ${r.encontrado ? 'badge-success' : 'badge-warning'}">${r.encontrado ? '✓' : '⚠'}</span></td>`;
+            tb.appendChild(tr);
+        });
+        updTB();
+        document.getElementById('secBcol').style.display = 'block';
+        document.getElementById('secBcol').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function eB(i, f, v) { regsB[i][f] = v; }
+    function updTB() { const t = calcT(regsB); document.getElementById('ftB').textContent = '$' + fmt(t); document.getElementById('btotal').textContent = 'Total: $' + fmt(t); }
+
+    // Aplica el Documento Autorizado global a todas las filas de Bancolombia
+    function aplicarDocAut() {
+        const val = document.getElementById('h_doc_aut')?.value || '';
+        regsB.forEach((r, idx) => {
+            r.doc_autorizado = val;
+            const el = document.getElementById('docAut_' + idx);
+            if (el) { el.value = val; el.classList.add('ch'); }
+        });
+    }
+
+    // ===== VALIDACIONES =====
+    function validarSantander() {
+        let ok = true, msgs = [];
+        const ref = document.getElementById('ref_s').value.trim();
+        if (!ref) { marcarErr('fRefS'); ok = false; msgs.push('Referencia del pago'); }
+        regsS.forEach(r => { if (!r.num_cuenta) { ok = false; msgs.push(`N° cuenta de ${r.nombre}`); } });
+        if (!ok) {
+            const vb = document.getElementById('vbS');
+            document.getElementById('vbSmsg').textContent = 'Campos obligatorios: ' + msgs.join(', ');
+            vb.classList.add('show');
+            vb.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        } else {
+            document.getElementById('vbS').classList.remove('show');
+        }
+        return ok;
+    }
+
+    function validarBancolombia() {
+        const campos = [
+            { id: 'fNit', elId: 'h_nit', tipo: 'input' },
+            { id: 'fTp', elId: 'h_tp', tipo: 'select' },
+            { id: 'fAp', elId: 'h_ap', tipo: 'select' },
+            { id: 'fSeq', elId: 'h_seq', tipo: 'input' },
+            { id: 'fCta', elId: 'h_cta', tipo: 'input' },
+            { id: 'fTcd', elId: 'h_tcd', tipo: 'select' },
+            { id: 'fDesc', elId: 'h_desc', tipo: 'input' },
+            { id: 'fFecha', elId: 'h_fecha', tipo: 'input' },
+        ];
+        let ok = true, msgs = [];
+        campos.forEach(c => {
+            const el = document.getElementById(c.elId);
+            const val = el?.value?.trim() || '';
+            if (!val) { marcarErr(c.id); ok = false; msgs.push(document.querySelector(`#${c.id} label`).textContent.replace('*', '').trim()); }
+        });
+        regsB.forEach(r => { if (!r.num_cuenta) { ok = false; msgs.push(`N° cuenta de ${r.nombre}`); } });
+        if (!ok) {
+            const vb = document.getElementById('vbB');
+            document.getElementById('vbBmsg').textContent = 'Campos obligatorios: ' + msgs.join(', ');
+            vb.classList.add('show');
+            vb.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        } else {
+            document.getElementById('vbB').classList.remove('show');
+        }
+        return ok;
+    }
+
+    function marcarErr(fieldId) { document.getElementById(fieldId).classList.add('has-error'); }
+    function limpiarErr(fieldId) { document.getElementById(fieldId).classList.remove('has-error'); }
+
+    // ===== GENERAR ARCHIVO =====
+    async function generarArchivo(p) {
+        if (!aEnvio) return;
+        if (p === 'santander' && !validarSantander()) return;
+        if (p === 'bancolombia' && !validarBancolombia()) return;
+
+        document.getElementById('ltitle').textContent = p === 'santander' ? 'Generando Santander…' : 'Generando Bancolombia PAB…';
+        document.getElementById('lmsg').textContent = 'Procesando datos y aplicando la plantilla bancaria';
+        document.getElementById('loadov').classList.add('show');
+
+        try {
+            const manuales = { ...confFalt };
+            const regs = p === 'santander' ? regsS : regsB;
+            regs.forEach(r => {
+                manuales[r.documento] = {
+                    tipo_doc: TDRV[r.tipo_doc_texto] || r.tipo_doc_key || 'CC',
+                    banco_sant: r.banco_sant || '',
+                    banco_nom: r.banco_nom || '',
+                    tipo_cuenta: r.tipo_cuenta,
+                    num_cuenta: r.num_cuenta,
+                    valor: r.valor,
+                    email: r.email || '',
+                    celular: r.celular || '',
+                    ...(p === 'bancolombia' ? { doc_autorizado: r.doc_autorizado || '' } : {}),
+                    tipo_transaccion: r.tipo_transaccion || 37,
+                };
+            });
+
+            const ref = p === 'santander'
+                ? (document.getElementById('ref_s')?.value?.trim() || `Reembolso ${datosServ.consecutivo || ''}`)
+                : (document.getElementById('h_desc')?.value?.trim() || 'Reembolso');
+
+            const hdr = {
+                nit_pagador: document.getElementById('h_nit')?.value || '',
+                tipo_pago: document.getElementById('h_tp')?.value || '',
+                aplicacion: document.getElementById('h_ap')?.value || '',
+                secuencia: document.getElementById('h_seq')?.value || '',
+                nro_cuenta_debitar: document.getElementById('h_cta')?.value || '',
+                tipo_cuenta_debitar: document.getElementById('h_tcd')?.value || '',
+                descripcion: ref,
+                fecha_aplicacion: document.getElementById('h_fecha')?.value || '',
+            };
+
+            const fd = new FormData();
+            fd.append('formato_envio', aEnvio);
+            if (aMaestro) fd.append('maestro_empleados', aMaestro);
+            fd.append('plantilla', p);
+            fd.append('referencia', ref);
+            fd.append('datos_manuales', JSON.stringify(manuales));
+            fd.append('header_config', JSON.stringify(hdr));
+            fd.append('csrfmiddlewaretoken', csrf());
+
+            const res = await fetch('/generar/', { method: 'POST', body: fd });
+            if (!res.ok) throw new Error(await res.text());
+            const blob = await res.blob();
+            const cd = res.headers.get('Content-Disposition') || '';
+            const m = cd.match(/filename="(.+)"/);
+            const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(blob), download: m ? m[1] : `${p}.xlsx` });
+            a.click(); URL.revokeObjectURL(a.href);
+            alerta(`✅ Archivo ${p === 'santander' ? 'Santander' : 'Bancolombia PAB'} descargado correctamente.`, 'ok');
+        } catch (e) { alerta('❌ ' + e.message, 'err'); }
+        finally { document.getElementById('loadov').classList.remove('show'); }
+    }
+
+    // ===== HELPERS =====
+    function resetear() {
+        aEnvio = aMaestro = datosServ = null; regsS = []; regsB = []; confFalt = {};
+        ['fi1', 'fi2'].forEach(id => document.getElementById(id).value = '');
+        ['dz1', 'dz2'].forEach(id => {
+            const el = document.getElementById(id);
+            el.classList.remove('has', 'has-file');
+            const num = el.id === 'dz1' ? '1' : '2';
+            document.getElementById('nombre' + num).textContent = 'Ningún archivo';
+            document.getElementById('tamano' + num).textContent = '';
+            document.getElementById('check' + num).style.display = 'none';
+            document.getElementById('ft' + num).textContent = '';
+        });
+        document.getElementById('btnCargar').disabled = true;
+        ['secFalt', 'secSant', 'secBcol'].forEach(id => document.getElementById(id).style.display = 'none');
+        ocultarAlerta(); window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function stats(d) {
+        return `
+            <div class="stat-box"><div class="stat-value">${d.cantidad}</div><div class="stat-label">Registros</div></div>
+            <div class="stat-box"><div class="stat-value">$${fmt(d.total)}</div><div class="stat-label">Monto Total</div></div>
+            <div class="stat-box"><div class="stat-value">${d.fecha || '—'}</div><div class="stat-label">Fecha</div></div>
+            <div class="stat-box"><div class="stat-value">${d.consecutivo || '—'}</div><div class="stat-label">Consecutivo</div></div>`;
+    }
+
+    function calcT(r) { return r.reduce((s, x) => s + (parseFloat(x.valor) || 0), 0); }
+    function mc(el) { el.classList.add('ch'); }
+
+    // Sistema de alertas estilo Código 1
+    function alerta(msg, tipo = 'err') {
+        const overlay = document.getElementById('alerta-overlay');
+        const content = document.getElementById('alerta-content');
+        let icono = 'fa-circle-xmark';
+        let titulo = 'Error';
+        if (tipo === 'ok') { tipo = 'success'; icono = 'fa-circle-check'; titulo = 'Éxito'; }
+        else if (tipo === 'warn') { tipo = 'warning'; icono = 'fa-triangle-exclamation'; titulo = 'Atención'; }
+        content.innerHTML = `
+            <div class="alerta-card ${tipo}">
+                <i class="fa-solid ${icono}"></i>
+                <h3>${titulo}</h3>
+                <p>${msg}</p>
+            </div>`;
+        overlay.style.display = 'flex';
+        overlay.onclick = () => overlay.style.display = 'none';
+        setTimeout(() => overlay.style.display = 'none', 5000);
+    }
+
+    function ocultarAlerta() { document.getElementById('alerta-overlay').style.display = 'none'; }
+
+    function fmt(n) { return Number(n).toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+    function csrf() { const m = document.cookie.match(/csrftoken=([^;]+)/); return m ? decodeURIComponent(m[1]) : ''; }
+
+    const TDM = {
+        'CC': { t: '01 - CEDULA CIUDADANIA (CC)', n: 1 },
+        'CE': { t: '02 - CEDULA DE EXTRANJERIA (CE)', n: 2 },
+        'NT': { t: '03 - NIT (NT)', n: 3 },
+        'TI': { t: '04 - TARJETA DE IDENTIDAD (TI)', n: 4 },
+        'P': { t: '05 - PASAPORTE (P)', n: 5 },
+        'PT': { t: '05 - PASAPORTE (P)', n: 5 },
+        'NE': { t: '06 - NII DE ESTABLECIMIENTO (NE)', n: 6 },
+        'RC': { t: '07 - REGISTRO CIVIL (RC)', n: 7 },
+        'PJ': { t: '08 - PASADO JUDICIAL (PJ)', n: 8 },
+        'TP': { t: '09 - TARJETA PROFESIONAL (TP)', n: 9 },
+        'SE': { t: '10 - SOCIEDAD EXTRAJERA (SE)', n: 10 },
+        'LM': { t: '14 - LIBRETA MILITAR (LM)', n: 14 },
     };
+    const TDRV = Object.fromEntries(Object.entries(TDM).map(([k, v]) => [v.t, k]));
 
-    const fd=new FormData();
-    fd.append('formato_envio',aEnvio);
-    if(aMaestro) fd.append('maestro_empleados',aMaestro);
-    fd.append('plantilla',p);
-    fd.append('referencia',ref);
-    fd.append('datos_manuales',JSON.stringify(manuales));
-    fd.append('header_config',JSON.stringify(hdr));
-    fd.append('csrfmiddlewaretoken',csrf());
-
-    const res=await fetch('/generar/',{method:'POST',body:fd});
-    if(!res.ok) throw new Error(await res.text());
-    const blob=await res.blob();
-    const cd=res.headers.get('Content-Disposition')||'';
-    const m=cd.match(/filename="(.+)"/);
-    const a=Object.assign(document.createElement('a'),{href:URL.createObjectURL(blob),download:m?m[1]:`${p}.xlsx`});
-    a.click(); URL.revokeObjectURL(a.href);
-    alerta(`✅ Archivo ${p==='santander'?'Santander':'Bancolombia PAB'} descargado correctamente.`,'ok');
-  }catch(e){alerta('❌ '+e.message,'err');}
-  finally{document.getElementById('loadov').classList.remove('show');}
-}
-
-// ── Helpers ────────────────────────────────────────────────────────────────────
-function resetear(){
-  aEnvio=aMaestro=datosServ=null; regsS=[]; regsB=[]; confFalt={};
-  ['fi1','fi2'].forEach(id=>document.getElementById(id).value='');
-  ['dz1','dz2'].forEach(id=>document.getElementById(id).classList.remove('has'));
-  ['ft1','ft2'].forEach(id=>document.getElementById(id).textContent='');
-  document.getElementById('btnCargar').disabled=true;
-  ['secFalt','secSant','secBcol'].forEach(id=>document.getElementById(id).style.display='none');
-  hide(); window.scrollTo({top:0,behavior:'smooth'});
-}
-function stats(d){return`
-  <div class="sbox"><div class="v">${d.cantidad}</div><div class="l">Registros</div></div>
-  <div class="sbox"><div class="v">$${fmt(d.total)}</div><div class="l">Monto Total</div></div>
-  <div class="sbox"><div class="v">${d.fecha||'—'}</div><div class="l">Fecha</div></div>
-  <div class="sbox"><div class="v">${d.consecutivo||'—'}</div><div class="l">Consecutivo</div></div>`;}
-function calcT(r){return r.reduce((s,x)=>s+(parseFloat(x.valor)||0),0);}
-function mc(el){el.classList.add('ch');}
-function alerta(msg,tipo){const el=document.getElementById('alerta');el.className=`alert a-${tipo} show`;el.innerHTML=msg;}
-function hide(){document.getElementById('alerta').className='alert';}
-function fmt(n){return Number(n).toLocaleString('es-CO',{minimumFractionDigits:2,maximumFractionDigits:2});}
-function csrf(){const m=document.cookie.match(/csrftoken=([^;]+)/);return m?decodeURIComponent(m[1]):'';}
-
-const TDM={
-  'CC':{t:'01 - CEDULA CIUDADANIA (CC)',n:1},
-  'CE':{t:'02 - CEDULA DE EXTRANJERIA (CE)',n:2},
-  'NT':{t:'03 - NIT (NT)',n:3},
-  'TI':{t:'04 - TARJETA DE IDENTIDAD (TI)',n:4},
-  'P': {t:'05 - PASAPORTE (P)',n:5},
-  'PT':{t:'05 - PASAPORTE (P)',n:5},
-  'NE':{t:'06 - NII DE ESTABLECIMIENTO (NE)',n:6},
-  'RC':{t:'07 - REGISTRO CIVIL (RC)',n:7},
-  'PJ':{t:'08 - PASADO JUDICIAL (PJ)',n:8},
-  'TP':{t:'09 - TARJETA PROFESIONAL (TP)',n:9},
-  'SE':{t:'10 - SOCIEDAD EXTRAJERA (SE)',n:10},
-  'LM':{t:'14 - LIBRETA MILITAR (LM)',n:14},
-};
-const TDRV=Object.fromEntries(Object.entries(TDM).map(([k,v])=>[v.t,k]));
+    document.addEventListener('DOMContentLoaded', () => {
+        document.querySelectorAll('.msg').forEach(m => {
+            if (m.dataset.tag.includes('error')) alerta(m.dataset.content, 'err');
+        });
+    });
 </script>
-{% csrf_token %}
 </body>
 </html>
