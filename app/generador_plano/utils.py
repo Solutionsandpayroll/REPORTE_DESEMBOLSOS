@@ -537,6 +537,23 @@ def generar_santander(datos, referencia=''):
         )
         encabezados = ''.join(filas_1_5)
 
+        # Actualizar el valor cacheado <v> de las formulas D2 y D3
+        # D2 = COUNTIF -> cantidad de registros
+        # D3 = SUMIFS  -> monto total
+        # Excel usa este valor para mostrar el dato antes de recalcular
+        cantidad = datos.get('cantidad', len(regs))
+        total    = datos.get('total', sum(r['valor'] for r in regs))
+        encabezados = _re.sub(
+            r'(<c r="D2"[^>]*><f>[^<]*</f><v>)[^<]*(</v>)',
+            r'\g<1>' + str(cantidad) + r'\g<2>',
+            encabezados
+        )
+        encabezados = _re.sub(
+            r'(<c r="D3"[^>]*><f>[^<]*</f><v>)[^<]*(</v>)',
+            r'\g<1>' + str(total) + r'\g<2>',
+            encabezados
+        )
+
         nuevo_sheetdata = f'<sheetData>{encabezados}{bloque_datos}</sheetData>'
         sheet1_nuevo = (
             sheet1_original[:sd_start]
