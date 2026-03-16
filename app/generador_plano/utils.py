@@ -9,6 +9,7 @@ BANCOLOMBIA → números enteros en: col A (tipo doc), col D (tipo transaccion=3
                Todos los números con alineación DERECHA para no quedar en rojo
 """
 import os
+import zipfile
 from io import BytesIO
 from datetime import datetime
 from copy import copy
@@ -392,31 +393,48 @@ def aplicar_manuales(datos, manuales):
 
 
 # ── Generación SANTANDER ──────────────────────────────────────────────────────
-# La plantilla tiene logo Santander + botón rojo embebidos (drawing1.xml).
-# Al abrir con keep_vba=True y save() se preservan automáticamente.
+# Logo Santander + botón rojo "Generar Archivo / Generate File" están embebidos
+# en xl/drawings/drawing1.xml dentro del .xlsm.
 #
-# Columnas originales (A-I) + columnas adicionales (J-M):
-#   A: Beneficiario N               General
-#   B: Tipo de Documento            @
-#   C: Numero de Documento          @
-#   D: Banco                        @
-#   E: Tipo de Cuenta               General
-#   F: Cuenta destino               @
-#   G: Monto                        #,##0.00
-#   H: Valida Documento?            General
-#   I: Referencia                   @
-#   J: Email                        @   (del maestro E-MAIL)
-#   K: Documento Autorizado         @   (ingresado por usuario, mismo valor todos)
-#   L: Celular Beneficiario         @   (del maestro CELULAR)
+# Problema: openpyxl strips the VBA shape (button) when saving — el botón
+# desaparece en Vercel y otros entornos serverless.
 #
-# D2 = cantidad (fórmula COUNTIF, se actualiza el valor)
-# D3 = total    (fórmula SUMIFS,  se actualiza el valor)
-def generar_santander(datos, referencia=''):
-    regs  = datos['registros']
-    cons  = datos.get('consecutivo','')
-    ref   = referencia or (f"Reembolso {cons}" if cons else "Reembolso")
+# Solución: inyección ZIP directa.
+#   1. Generar el xlsx con openpyxl (datos correctos)
+#   2. Reemplazar xl/drawings/drawing1.xml y xl/media/image1.png con
+#      los originales de la plantilla → logo + botón garantizados
+#
+# Columnas A-I (originales) + J-L (nuevas):
+#   A: Beneficiario N       General
+#   B: Tipo de Documento    @
+#   C: Numero de Documento  @
+#   D: Banco                @
+#   E: Tipo de Cuenta       General
+#   F: Cuenta destino       @
+#   G: Monto                #,##0.00
+#   H: Valida Documento?    General
+#   I: Referencia           @
+#   J: Email                @  (del maestro E-MAIL)
+#   K: Documento Autorizado @  (mismo valor para todos)
+#   L: Celular Beneficiario @  (del maestro CELULAR)
 
-    # keep_vba=True preserva el logo y el botón embebidos en el drawing XML
+# Leer los assets del drawing UNA VEZ al importar el módulo
+# (evita re-leer el zip en cada request)
+try:
+    with zipfile.ZipFile(TPL_S) as _ztpl:
+        _DRAWING_XML  = _ztpl.read('xl/drawings/drawing1.xml')
+        _DRAWING_RELS = _ztpl.read('xl/drawings/_rels/drawing1.xml.rels')
+        _LOGO_PNG     = _ztpl.read('xl/media/image1.png')
+        _SHEET1_RELS  = _ztpl.read('xl/worksheets/_rels/sheet1.xml.rels')
+except Exception:
+    _DRAWING_XML = _DRAWING_RELS = _LOGO_PNG = _SHEET1_RELS = None
+
+
+def generar_santander(datos, referencia=''):
+    regs = datos['registros']
+    cons = datos.get('consecutivo', '')
+    ref  = referencia or (f"Reembolso {cons}" if cons else "Reembolso")
+
     wb = load_workbook(TPL_S, keep_vba=True)
     ws = wb['GENERAR ARCHIVO - GENERATE FILE']
 
@@ -429,31 +447,28 @@ def generar_santander(datos, referencia=''):
     ws['D2'].value = datos['cantidad']
     ws['D3'].value = datos['total']
 
-    # Asegurar encabezados en columnas J, K, L (si no existen en la plantilla)
-    EXTRA_HEADERS = {10: 'Email', 11: 'Documento Autorizado', 12: 'Celular Beneficiario'}
-    hdr_row = ws[5]  # fila 5 = encabezados
-    for ci, label in EXTRA_HEADERS.items():
+    # Agregar encabezados en columnas J, K, L si no existen
+    EXTRA = {10: 'Email', 11: 'Documento Autorizado', 12: 'Celular Beneficiario'}
+    for ci, label in EXTRA.items():
         cell = ws.cell(5, ci)
         if not cell.value:
             cell.value = label
-            # Copiar estilo del encabezado H (col 8) como base
             src = ws.cell(5, 8)
-            cell.font   = copy(src.font)
-            cell.fill   = copy(src.fill)
-            cell.border = copy(src.border)
+            cell.font      = copy(src.font)
+            cell.fill      = copy(src.fill)
+            cell.border    = copy(src.border)
             cell.alignment = copy(src.alignment)
 
-    # Capturar estilos base de la fila 6 (ya limpia)
+    # Capturar estilos de la fila 6 para las filas de datos
     est = {}
     for ci in range(1, 13):
-        ref_ci = min(ci, 9)   # usar col 9 como fallback para las nuevas cols
+        ref_ci = min(ci, 9)
         est[ci] = {
             'font':   copy(ws.cell(6, ref_ci).font),
             'fill':   copy(ws.cell(6, ref_ci).fill),
             'border': copy(ws.cell(6, ref_ci).border),
         }
 
-    # Formatos numéricos por columna
     FMT = {
         1: 'General', 2: '@',        3: '@',
         4: '@',        5: 'General',  6: '@',
@@ -461,14 +476,11 @@ def generar_santander(datos, referencia=''):
         10: '@',       11: '@',       12: '@',
     }
 
-    # Valor de Documento Autorizado: único campo que va igual en todos los registros.
-    # Se toma del primer registro que lo tenga, o se deja vacío.
-    doc_auto_global = ''
-    for r in regs:
-        v = r.get('doc_autorizado','').strip()
-        if v:
-            doc_auto_global = v
-            break
+    # Documento Autorizado: mismo para todos (tomar del primer registro que lo tenga)
+    doc_auto_global = next(
+        (r.get('doc_autorizado','').strip() for r in regs if r.get('doc_autorizado','')),
+        ''
+    )
 
     for i, r in enumerate(regs):
         rn = 6 + i
@@ -488,13 +500,36 @@ def generar_santander(datos, referencia=''):
         }
         for ci, val in vals.items():
             cell = ws.cell(rn, ci, val)
-            cell.font   = copy(est[ci]['font'])
-            cell.fill   = copy(est[ci]['fill'])
-            cell.border = copy(est[ci]['border'])
+            cell.font          = copy(est[ci]['font'])
+            cell.fill          = copy(est[ci]['fill'])
+            cell.border        = copy(est[ci]['border'])
             cell.number_format = FMT[ci]
 
-    out = BytesIO(); wb.save(out); out.seek(0)
-    return out
+    # ── Guardar con openpyxl ──────────────────────────────────────────────────
+    buf = BytesIO()
+    wb.save(buf)
+    buf.seek(0)
+
+    # ── Inyectar logo + botón originales (garantiza Vercel y cualquier env) ──
+    if _DRAWING_XML and _LOGO_PNG:
+        buf2 = BytesIO()
+        with zipfile.ZipFile(buf, 'r') as zin, \
+             zipfile.ZipFile(buf2, 'w', zipfile.ZIP_DEFLATED) as zout:
+            for item in zin.infolist():
+                name = item.filename
+                if name == 'xl/drawings/drawing1.xml':
+                    zout.writestr(item, _DRAWING_XML)
+                elif name == 'xl/drawings/_rels/drawing1.xml.rels':
+                    zout.writestr(item, _DRAWING_RELS)
+                elif name == 'xl/media/image1.png':
+                    zout.writestr(item, _LOGO_PNG)
+                else:
+                    zout.writestr(item, zin.read(name))
+        buf2.seek(0)
+        return buf2
+
+    buf.seek(0)
+    return buf
 
 
 # ── Generación BANCOLOMBIA ────────────────────────────────────────────────────
