@@ -424,118 +424,141 @@ def aplicar_manuales(datos, manuales):
 #   K: Documento Autorizado @  (mismo valor para todos)
 #   L: Celular Beneficiario @  (del maestro CELULAR)
 
-# Leer los assets del drawing UNA VEZ al importar el módulo
-# Descarga la plantilla desde GitHub Raw para extraer logo y drawing
-try:
-    with zipfile.ZipFile(_descargar(TPL_S_URL)) as _ztpl:
-        _DRAWING_XML  = _ztpl.read('xl/drawings/drawing1.xml')
-        _DRAWING_RELS = _ztpl.read('xl/drawings/_rels/drawing1.xml.rels')
-        _LOGO_PNG     = _ztpl.read('xl/media/image1.png')
-        _SHEET1_RELS  = _ztpl.read('xl/worksheets/_rels/sheet1.xml.rels')
-except Exception:
-    _DRAWING_XML = _DRAWING_RELS = _LOGO_PNG = _SHEET1_RELS = None
+def _xml_escape(s):
+    """Escapa caracteres especiales XML."""
+    return (str(s)
+            .replace('&', '&amp;')
+            .replace('<', '&lt;')
+            .replace('>', '&gt;')
+            .replace('"', '&quot;')
+            .replace("'", '&apos;'))
 
 
 def generar_santander(datos, referencia=''):
+    """
+    Estrategia: edición XML directa dentro del ZIP original.
+    - Descarga la plantilla .xlsm desde GitHub Raw (BytesIO)
+    - Abre el ZIP y copia TODOS los archivos sin tocarlos
+    - Solo reemplaza xl/worksheets/sheet1.xml con los nuevos datos
+    - El drawing, logo, VBA, relaciones, content-types quedan 100% intactos
+    """
+    import re as _re
+
     regs = datos['registros']
     cons = datos.get('consecutivo', '')
     ref  = referencia or (f"Reembolso {cons}" if cons else "Reembolso")
 
-    wb = load_workbook(_descargar(TPL_S_URL), keep_vba=True)
-    ws = wb['GENERAR ARCHIVO - GENERATE FILE']
-
-    # Limpiar datos existentes desde fila 6 (cols A-L)
-    for rn in range(6, ws.max_row + 1):
-        for ci in range(1, 13):
-            ws.cell(rn, ci).value = None
-
-    # Actualizar totales
-    ws['D2'].value = datos['cantidad']
-    ws['D3'].value = datos['total']
-
-    # Agregar encabezados en columnas J, K, L si no existen
-    EXTRA = {10: 'Email', 11: 'Documento Autorizado', 12: 'Celular Beneficiario'}
-    for ci, label in EXTRA.items():
-        cell = ws.cell(5, ci)
-        if not cell.value:
-            cell.value = label
-            src = ws.cell(5, 8)
-            cell.font      = copy(src.font)
-            cell.fill      = copy(src.fill)
-            cell.border    = copy(src.border)
-            cell.alignment = copy(src.alignment)
-
-    # Capturar estilos de la fila 6 para las filas de datos
-    est = {}
-    for ci in range(1, 13):
-        ref_ci = min(ci, 9)
-        est[ci] = {
-            'font':   copy(ws.cell(6, ref_ci).font),
-            'fill':   copy(ws.cell(6, ref_ci).fill),
-            'border': copy(ws.cell(6, ref_ci).border),
-        }
-
-    FMT = {
-        1: 'General', 2: '@',        3: '@',
-        4: '@',        5: 'General',  6: '@',
-        7: '#,##0.00', 8: 'General',  9: '@',
-        10: '@',       11: '@',       12: '@',
-    }
-
-    # Documento Autorizado: mismo para todos (tomar del primer registro que lo tenga)
     doc_auto_global = next(
-        (r.get('doc_autorizado','').strip() for r in regs if r.get('doc_autorizado','')),
+        (r.get('doc_autorizado', '').strip() for r in regs if r.get('doc_autorizado', '')),
         ''
     )
 
-    for i, r in enumerate(regs):
-        rn = 6 + i
-        vals = {
-            1:  f"Beneficiario {r['numero']}",
-            2:  r['tipo_doc_texto'],
-            3:  r['documento'],
-            4:  r['banco_sant'],
-            5:  r['tipo_cuenta'],
-            6:  r['num_cuenta'],
-            7:  r['valor'],
-            8:  'SI',
-            9:  ref,
-            10: r.get('email', ''),
-            11: r.get('doc_autorizado', '') or doc_auto_global,
-            12: r.get('celular', ''),
+    # ── Descargar plantilla original ─────────────────────────────────────────
+    tpl_bytes = _descargar(TPL_S_URL)
+
+    with zipfile.ZipFile(tpl_bytes, 'r') as zin:
+        sheet1_original = zin.read('xl/worksheets/sheet1.xml').decode('utf-8')
+
+        # ── Construir nuevas filas de datos (fila 6 en adelante) ─────────────
+        # Estilos de la plantilla original (obtenidos inspeccionando el XML):
+        #   s="5"  → General  (col A, E, H)
+        #   s="6"  → @        (col B, C, F, I)
+        #   s="11" → #,##0.00 (col G)
+        # Mapeamos cada columna a su estilo original
+        # Cols D (banco) y las nuevas J,K,L reusan s="6" (texto @)
+        COL_STYLE = {
+            'A': '5',   # Beneficiario   General
+            'B': '6',   # Tipo Doc       @
+            'C': '6',   # Num Doc        @
+            'D': '6',   # Banco          @
+            'E': '5',   # Tipo Cuenta    General
+            'F': '6',   # Num Cuenta     @
+            'G': '11',  # Monto          #,##0.00
+            'H': '5',   # Valida Doc     General
+            'I': '6',   # Referencia     @
         }
-        for ci, val in vals.items():
-            cell = ws.cell(rn, ci, val)
-            cell.font          = copy(est[ci]['font'])
-            cell.fill          = copy(est[ci]['fill'])
-            cell.border        = copy(est[ci]['border'])
-            cell.number_format = FMT[ci]
+        COLS = list('ABCDEFGHI')
 
-    # ── Guardar con openpyxl ──────────────────────────────────────────────────
-    buf = BytesIO()
-    wb.save(buf)
-    buf.seek(0)
-
-    # ── Inyectar logo + botón originales (garantiza Vercel y cualquier env) ──
-    if _DRAWING_XML and _LOGO_PNG:
-        buf2 = BytesIO()
-        with zipfile.ZipFile(buf, 'r') as zin, \
-             zipfile.ZipFile(buf2, 'w', zipfile.ZIP_DEFLATED) as zout:
-            for item in zin.infolist():
-                name = item.filename
-                if name == 'xl/drawings/drawing1.xml':
-                    zout.writestr(item, _DRAWING_XML)
-                elif name == 'xl/drawings/_rels/drawing1.xml.rels':
-                    zout.writestr(item, _DRAWING_RELS)
-                elif name == 'xl/media/image1.png':
-                    zout.writestr(item, _LOGO_PNG)
+        def fila_xml(rn, vals_dict):
+            """Genera el XML de una fila completa."""
+            cells = []
+            for col in COLS:
+                val = vals_dict.get(col, '')
+                st  = COL_STYLE[col]
+                ref_cell = f'{col}{rn}'
+                if val == '' or val is None:
+                    cells.append(f'<c r="{ref_cell}" s="{st}"/>')
+                elif col == 'G':
+                    # Valor numérico
+                    n = float(val) if val != '' else 0.0
+                    cells.append(f'<c r="{ref_cell}" s="{st}" t="n"><v>{n}</v></c>')
                 else:
-                    zout.writestr(item, zin.read(name))
-        buf2.seek(0)
-        return buf2
+                    # Texto inline (t="inlineStr") para evitar depender del sharedStrings
+                    cells.append(
+                        f'<c r="{ref_cell}" s="{st}" t="inlineStr">'
+                        f'<is><t>{_xml_escape(val)}</t></is></c>'
+                    )
+            return f'<row r="{rn}" spans="1:9">{"".join(cells)}</row>'
 
-    buf.seek(0)
-    return buf
+        nuevas_filas = []
+        for i, r in enumerate(regs):
+            rn = 6 + i
+            nuevas_filas.append(fila_xml(rn, {
+                'A': f"Beneficiario {r['numero']}",
+                'B': r['tipo_doc_texto'],
+                'C': r['documento'],
+                'D': r['banco_sant'],
+                'E': r['tipo_cuenta'],
+                'F': r['num_cuenta'],
+                'G': r['valor'],
+                'H': 'SI',
+                'I': ref,
+            }))
+
+        # Filas vacías para limpiar el resto (6+len hasta 10005)
+        for rn in range(6 + len(regs), 10006):
+            cells = ''.join(
+                f'<c r="{col}{rn}" s="{COL_STYLE[col]}"/>' for col in COLS
+            )
+            nuevas_filas.append(f'<row r="{rn}" spans="1:9">{cells}</row>')
+
+        bloque_datos = ''.join(nuevas_filas)
+
+        # ── Reconstruir sheet1.xml ────────────────────────────────────────────
+        # Extraer el bloque sheetData y reemplazar solo las filas 6 en adelante
+        # Filas 1-5 (encabezados y fórmulas) se conservan intactas
+        sd_start = sheet1_original.find('<sheetData>')
+        sd_end   = sheet1_original.find('</sheetData>') + len('</sheetData>')
+
+        # Obtener filas 1-5 del sheetData original
+        sheetdata_orig = sheet1_original[sd_start:sd_end]
+        filas_1_5 = _re.findall(
+            r'<row r="[1-5]".*?</row>', sheetdata_orig, _re.DOTALL
+        )
+        encabezados = ''.join(filas_1_5)
+
+        nuevo_sheetdata = f'<sheetData>{encabezados}{bloque_datos}</sheetData>'
+        sheet1_nuevo = (
+            sheet1_original[:sd_start]
+            + nuevo_sheetdata
+            + sheet1_original[sd_end:]
+        )
+
+        # ── Reensamblar el ZIP copiando todo excepto sheet1.xml ───────────────
+        buf_out = BytesIO()
+        with zipfile.ZipFile(buf_out, 'w', zipfile.ZIP_DEFLATED) as zout:
+            for item in zin.infolist():
+                if item.filename == 'xl/worksheets/sheet1.xml':
+                    zout.writestr(item, sheet1_nuevo.encode('utf-8'))
+                elif item.filename == 'xl/calcChain.xml':
+                    # calcChain puede causar errores de recálculo; lo eliminamos
+                    # Excel lo regenera automáticamente al abrir
+                    pass
+                else:
+                    zout.writestr(item, zin.read(item.filename))
+
+        buf_out.seek(0)
+        return buf_out
 
 
 # ── Generación BANCOLOMBIA ────────────────────────────────────────────────────
