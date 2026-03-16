@@ -30,7 +30,7 @@ TIPO_DOC = {
     'NIT': ('03 - NIT (NT)',                          3),
     'TI':  ('04 - TARJETA DE IDENTIDAD (TI)',         4),
     'P':   ('05 - PASAPORTE (P)',                     5),
-    'PT':  ('02 - CEDULA DE EXTRANJERIA (CE)',        2),
+    'PT':  ('05 - PASAPORTE (P)',                     5),
     'PA':  ('05 - PASAPORTE (P)',                     5),
     'NE':  ('06 - NII DE ESTABLECIMIENTO (NE)',       6),
     'RC':  ('07 - REGISTRO CIVIL (RC)',               7),
@@ -205,7 +205,7 @@ def _sheet_maestro(xl, sheet):
     df = raw.iloc[hdr:].copy()
     df.columns = [str(c).strip() for c in raw.iloc[hdr]]
     df = df.iloc[1:].reset_index(drop=True)
-    doc_c = banco_c = tipo_c = cta_c = tdoc_c = nom_c = None
+    doc_c = banco_c = tipo_c = cta_c = tdoc_c = nom_c = email_c = cel_c = None
     for c in df.columns:
         cu = c.upper().strip()
         if cu in ('DOCUMENTO','DOCTO IDENT','# DOCUMENTO') and not doc_c:  doc_c = c
@@ -214,13 +214,15 @@ def _sheet_maestro(xl, sheet):
         if cu in ('TIPO CUENTA','TIPO CTA') and not tipo_c:                tipo_c = c
         if cu in ('N° CUENTA','CTA BCO') and not cta_c:                    cta_c = c
         if cu in ('TIPO DOC','CLASE DOCTO') and not tdoc_c:                tdoc_c = c
+        if 'MAIL' in cu and not email_c:                                   email_c = c
+        if cu == 'CELULAR' and not cel_c:                                  cel_c = c
     if nom_c: banco_c = nom_c
     df['__DOC__'] = df[doc_c].apply(_clean_doc) if doc_c else ''
-    return df, banco_c, tipo_c, cta_c, tdoc_c
+    return df, banco_c, tipo_c, cta_c, tdoc_c, email_c, cel_c
 
 def leer_maestro_externo(archivo):
     xl = pd.ExcelFile(archivo)
-    df, b, t, c, d = _sheet_maestro(xl, xl.sheet_names[0])
+    df, b, t, c, d, em, cel = _sheet_maestro(xl, xl.sheet_names[0])
     out = {}
     for _, row in df.iterrows():
         doc = str(row.get('__DOC__','')).strip()
@@ -232,6 +234,8 @@ def leer_maestro_externo(archivo):
             'tipo_cuenta': _norm_cuenta(str(row.get(t,'') if t else '')),
             'num_cuenta': str(row.get(c,'') if c else '').strip(),
             'tipo_doc': str(row.get(d,'CC') if d else 'CC').strip(),
+            'email':    str(row.get(em,'') if em else '').strip(),
+            'celular':  str(row.get(cel,'') if cel else '').strip(),
         }
     return out
 
@@ -282,9 +286,9 @@ def leer_formato_envio(archivo, maestro_externo=None):
     if c_num:
         df = df[pd.to_numeric(df[c_num], errors='coerce').notna()].copy()
 
-    df_m, bm, tm, cm, dm = None, None, None, None, None
+    df_m, bm, tm, cm, dm, em_m, cel_m = None, None, None, None, None, None, None
     if h_maest:
-        df_m, bm, tm, cm, dm = _sheet_maestro(xl, h_maest)
+        df_m, bm, tm, cm, dm, em_m, cel_m = _sheet_maestro(xl, h_maest)
 
     registros = []
     faltantes = []
@@ -297,7 +301,7 @@ def leer_formato_envio(archivo, maestro_externo=None):
         empresa= str(fila.get(c_emp,'')).strip() if c_emp else ''
         valor  = float(fila.get(c_val,0)) if c_val and pd.notna(fila.get(c_val,0)) else 0.0
 
-        br = tip = cta = tdm = ''
+        br = tip = cta = tdm = email = celular = ''
         b_cod = None; b_nom = ''
         found = False
 
@@ -305,15 +309,18 @@ def leer_formato_envio(archivo, maestro_externo=None):
             emp = df_m[df_m['__DOC__'] == doc]
             if not emp.empty:
                 e = emp.iloc[0]
-                br  = str(e.get(bm,'') if bm else '').strip()
-                tip = str(e.get(tm,'') if tm else '').strip()
-                cta = str(e.get(cm,'') if cm else '').strip()
-                tdm = str(e.get(dm,tdoc) if dm else tdoc).strip()
+                br     = str(e.get(bm,'') if bm else '').strip()
+                tip    = str(e.get(tm,'') if tm else '').strip()
+                cta    = str(e.get(cm,'') if cm else '').strip()
+                tdm    = str(e.get(dm,tdoc) if dm else tdoc).strip()
+                email  = str(e.get(em_m,'') if em_m else '').strip()
+                celular= str(e.get(cel_m,'') if cel_m else '').strip()
                 found = True
 
         if not found and maestro_externo and doc in maestro_externo:
             m = maestro_externo[doc]
             br=m['banco_raw']; tip=m['tipo_cuenta']; cta=m['num_cuenta']; tdm=m['tipo_doc']
+            email=m.get('email',''); celular=m.get('celular','')
             found = True
 
         if not found:
@@ -326,20 +333,23 @@ def leer_formato_envio(archivo, maestro_externo=None):
 
         registros.append({
             'numero': num,
-            'tipo_doc_key':      tdm.upper(),       # 'CC', 'CE'...
-            'tipo_doc_texto':    td_text,            # '01 - CEDULA CIUDADANIA (CC)'
-            'tipo_doc_num':      td_num,             # 1, 2, 3...
+            'tipo_doc_key':      tdm.upper(),
+            'tipo_doc_texto':    td_text,
+            'tipo_doc_num':      td_num,
             'documento':         doc,
             'nombre':            nombre,
             'empresa':           empresa,
             'banco_raw':         br,
             'banco_sant':        sant if sant else br,
-            'banco_cod':         b_cod,             # 1007 (int)
-            'banco_nom':         b_nom,             # 'BANCOLOMBIA'
+            'banco_cod':         b_cod,
+            'banco_nom':         b_nom,
             'banco_mapeado':     bool(sant) and sant != br,
             'tipo_cuenta':       _norm_cuenta(tip),
             'num_cuenta':        cta,
             'valor':             valor,
+            'email':             email,
+            'celular':           celular,
+            'doc_autorizado':    '',   # se completa en el formulario/preview
             'encontrado':        found,
         })
 
@@ -360,71 +370,121 @@ def aplicar_manuales(datos, manuales):
         # Si el usuario eligió banco bancolombia directamente por nombre
         if m.get('banco_nom') and m['banco_nom'] in PAB_NOM2COD:
             nom = m['banco_nom']; cod = PAB_NOM2COD[nom]
-        r['banco_sant']     = sant if sant else br
-        r['banco_cod']      = cod
-        r['banco_nom']      = nom
-        r['banco_mapeado']  = bool(sant) and sant != br
-        r['tipo_cuenta']    = _norm_cuenta(m.get('tipo_cuenta', r['tipo_cuenta']))
-        r['num_cuenta']     = m.get('num_cuenta', r['num_cuenta'])
-        r['valor']          = float(m.get('valor', r['valor']) or r['valor'])
+        r['banco_sant']      = sant if sant else br
+        r['banco_cod']       = cod
+        r['banco_nom']       = nom
+        r['banco_mapeado']   = bool(sant) and sant != br
+        r['tipo_cuenta']     = _norm_cuenta(m.get('tipo_cuenta', r['tipo_cuenta']))
+        r['num_cuenta']      = m.get('num_cuenta', r['num_cuenta'])
+        r['valor']           = float(m.get('valor', r['valor']) or r['valor'])
+        r['email']           = m.get('email', r.get('email',''))
+        r['celular']         = m.get('celular', r.get('celular',''))
+        r['doc_autorizado']  = m.get('doc_autorizado', r.get('doc_autorizado',''))
+        r['tipo_transaccion']= int(m.get('tipo_transaccion', r.get('tipo_transaccion',37)) or 37)
         td_t, td_n = _norm_tdoc(m.get('tipo_doc', r['tipo_doc_key']))
-        r['tipo_doc_texto'] = td_t
-        r['tipo_doc_num']   = td_n
-        r['tipo_doc_key']   = m.get('tipo_doc', r['tipo_doc_key']).upper()
-        r['encontrado']     = True
+        r['tipo_doc_texto']  = td_t
+        r['tipo_doc_num']    = td_n
+        r['tipo_doc_key']    = m.get('tipo_doc', r['tipo_doc_key']).upper()
+        r['encontrado']      = True
     datos['total']     = round(sum(r['valor'] for r in datos['registros']), 2)
     datos['faltantes'] = []
     return datos
 
 
 # ── Generación SANTANDER ──────────────────────────────────────────────────────
-# Estructura:  D2=cantidad  D3=total
-# Fila 5 = encabezados  |  Fila 6+ = datos
-# Columnas (A-I):
-#   A: Beneficiario N  (texto)
-#   B: Tipo Documento  (texto: '01 - CEDULA CIUDADANIA (CC)')  fmt=@
-#   C: Nro Documento   (texto: '1020768925')  fmt=@
-#   D: Banco           (texto: '0007 - BANCOLOMBIA')  fmt=@
-#   E: Tipo Cuenta     (texto: 'AHORROS')
-#   F: Nro Cuenta      (texto: '91253097511')  fmt=@
-#   G: Monto           (número: 7639026)  fmt=#,##0.00
-#   H: Valida Doc      (texto: 'SI')
-#   I: Referencia      (texto)  fmt=@
+# La plantilla tiene logo Santander + botón rojo embebidos (drawing1.xml).
+# Al abrir con keep_vba=True y save() se preservan automáticamente.
+#
+# Columnas originales (A-I) + columnas adicionales (J-M):
+#   A: Beneficiario N               General
+#   B: Tipo de Documento            @
+#   C: Numero de Documento          @
+#   D: Banco                        @
+#   E: Tipo de Cuenta               General
+#   F: Cuenta destino               @
+#   G: Monto                        #,##0.00
+#   H: Valida Documento?            General
+#   I: Referencia                   @
+#   J: Email                        @   (del maestro E-MAIL)
+#   K: Documento Autorizado         @   (ingresado por usuario, mismo valor todos)
+#   L: Celular Beneficiario         @   (del maestro CELULAR)
+#
+# D2 = cantidad (fórmula COUNTIF, se actualiza el valor)
+# D3 = total    (fórmula SUMIFS,  se actualiza el valor)
 def generar_santander(datos, referencia=''):
     regs  = datos['registros']
     cons  = datos.get('consecutivo','')
     ref   = referencia or (f"Reembolso {cons}" if cons else "Reembolso")
 
+    # keep_vba=True preserva el logo y el botón embebidos en el drawing XML
     wb = load_workbook(TPL_S, keep_vba=True)
     ws = wb['GENERAR ARCHIVO - GENERATE FILE']
 
-    # Limpiar datos existentes desde fila 6
+    # Limpiar datos existentes desde fila 6 (cols A-L)
     for rn in range(6, ws.max_row + 1):
-        for ci in range(1, 10):
+        for ci in range(1, 13):
             ws.cell(rn, ci).value = None
 
+    # Actualizar totales
     ws['D2'].value = datos['cantidad']
     ws['D3'].value = datos['total']
 
-    # Capturar estilos base de la fila 6 (ya limpia)
-    est = {ci: {'font': copy(ws.cell(6,ci).font), 'fill': copy(ws.cell(6,ci).fill),
-                'border': copy(ws.cell(6,ci).border)} for ci in range(1,10)}
+    # Asegurar encabezados en columnas J, K, L (si no existen en la plantilla)
+    EXTRA_HEADERS = {10: 'Email', 11: 'Documento Autorizado', 12: 'Celular Beneficiario'}
+    hdr_row = ws[5]  # fila 5 = encabezados
+    for ci, label in EXTRA_HEADERS.items():
+        cell = ws.cell(5, ci)
+        if not cell.value:
+            cell.value = label
+            # Copiar estilo del encabezado H (col 8) como base
+            src = ws.cell(5, 8)
+            cell.font   = copy(src.font)
+            cell.fill   = copy(src.fill)
+            cell.border = copy(src.border)
+            cell.alignment = copy(src.alignment)
 
-    # Formatos numéricos por columna (exactos de la plantilla original)
-    FMT = {1:'General', 2:'@', 3:'@', 4:'@', 5:'General', 6:'@', 7:'#,##0.00', 8:'General', 9:'@'}
+    # Capturar estilos base de la fila 6 (ya limpia)
+    est = {}
+    for ci in range(1, 13):
+        ref_ci = min(ci, 9)   # usar col 9 como fallback para las nuevas cols
+        est[ci] = {
+            'font':   copy(ws.cell(6, ref_ci).font),
+            'fill':   copy(ws.cell(6, ref_ci).fill),
+            'border': copy(ws.cell(6, ref_ci).border),
+        }
+
+    # Formatos numéricos por columna
+    FMT = {
+        1: 'General', 2: '@',        3: '@',
+        4: '@',        5: 'General',  6: '@',
+        7: '#,##0.00', 8: 'General',  9: '@',
+        10: '@',       11: '@',       12: '@',
+    }
+
+    # Valor de Documento Autorizado: único campo que va igual en todos los registros.
+    # Se toma del primer registro que lo tenga, o se deja vacío.
+    doc_auto_global = ''
+    for r in regs:
+        v = r.get('doc_autorizado','').strip()
+        if v:
+            doc_auto_global = v
+            break
 
     for i, r in enumerate(regs):
         rn = 6 + i
         vals = {
-            1: f"Beneficiario {r['numero']}",
-            2: r['tipo_doc_texto'],      # texto completo: '01 - CEDULA CIUDADANIA (CC)'
-            3: r['documento'],
-            4: r['banco_sant'],          # texto: '0007 - BANCOLOMBIA'
-            5: r['tipo_cuenta'],
-            6: r['num_cuenta'],
-            7: r['valor'],
-            8: 'SI',
-            9: ref,
+            1:  f"Beneficiario {r['numero']}",
+            2:  r['tipo_doc_texto'],
+            3:  r['documento'],
+            4:  r['banco_sant'],
+            5:  r['tipo_cuenta'],
+            6:  r['num_cuenta'],
+            7:  r['valor'],
+            8:  'SI',
+            9:  ref,
+            10: r.get('email', ''),
+            11: r.get('doc_autorizado', '') or doc_auto_global,
+            12: r.get('celular', ''),
         }
         for ci, val in vals.items():
             cell = ws.cell(rn, ci, val)
@@ -542,18 +602,18 @@ def generar_bancolombia(datos, hdr):
             banco_cod = ''   # sin mapear → vacío
 
         vals = {
-            1:  r['tipo_doc_num'],    # NÚMERO entero: 1, 2, 3...
-            2:  r['documento'],       # texto
-            3:  r['nombre'],          # texto
-            4:  37,                   # NÚMERO fijo: 37
-            5:  banco_cod,            # NÚMERO entero: 1007, 1051...
-            6:  r['num_cuenta'],      # texto
-            7:  '',
-            8:  '',
-            9:  desc,
-            10: '',
-            11: r['valor'],           # NÚMERO decimal
-            12: fecha_int,            # NÚMERO entero DDMMYYYY
+            1:  r['tipo_doc_num'],           # NÚMERO entero: 1, 2, 3...
+            2:  r['documento'],              # texto
+            3:  r['nombre'],                 # texto
+            4:  r.get('tipo_transaccion',37),# NÚMERO (default 37)
+            5:  banco_cod,                   # NÚMERO entero: 1007, 1051...
+            6:  r['num_cuenta'],             # texto
+            7:  r.get('email',''),           # Email del maestro
+            8:  r.get('doc_autorizado',''),  # Documento Autorizado (editable)
+            9:  desc,                        # Referencia
+            10: r.get('celular',''),         # Celular del maestro
+            11: r['valor'],                  # NÚMERO decimal
+            12: fecha_int,                   # NÚMERO entero DDMMYYYY
         }
 
         for ci, val in vals.items():
