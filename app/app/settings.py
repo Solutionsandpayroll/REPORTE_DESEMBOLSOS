@@ -7,6 +7,10 @@ SECRET_KEY = 'plano-bancos-secret-key-change-in-production'
 DEBUG = True
 ALLOWED_HOSTS = ['*']
 
+
+WSGI_APPLICATION = 'app.wsgi.application'
+
+
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
@@ -51,6 +55,9 @@ DATABASES = {
         'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
+
+
+ALLOWED_HOSTS = ['.vercel.app', 'localhost', '127.0.0.1']
 
 MEDIA_ROOT = BASE_DIR / 'media'
 MEDIA_URL  = '/media/'
