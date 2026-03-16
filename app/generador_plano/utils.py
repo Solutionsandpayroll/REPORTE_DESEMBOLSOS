@@ -10,6 +10,7 @@ BANCOLOMBIA → números enteros en: col A (tipo doc), col D (tipo transaccion=3
 """
 import os
 import zipfile
+import urllib.request
 from io import BytesIO
 from datetime import datetime
 from copy import copy
@@ -17,10 +18,26 @@ import pandas as pd
 from openpyxl import load_workbook
 from openpyxl.styles import Alignment
 
-_HERE   = os.path.dirname(os.path.abspath(__file__))
-MEDIA   = os.path.join(_HERE, '..', 'media')
-TPL_S   = os.path.join(MEDIA, 'plantilla_plano_santander.xlsm')
-TPL_B   = os.path.join(MEDIA, 'plantilla_plano_bancolombia.xlsx')
+# ── URLs de las plantillas en GitHub Raw ─────────────────────────────────────
+# Las plantillas se descargan desde el repositorio en cada request.
+# Esto resuelve el problema de Vercel (filesystem de solo lectura en runtime).
+_GITHUB_RAW = (
+    "https://raw.githubusercontent.com/Solutionsandpayroll"
+    "/REPORTE_DESEMBOLSOS/main/REPORTE_DESEMBOLSOS/app/media"
+)
+TPL_S_URL = f"{_GITHUB_RAW}/plantilla_plano_santander.xlsm"
+TPL_B_URL = f"{_GITHUB_RAW}/plantilla_plano_bancolombia.xlsx"
+
+def _descargar_plantilla(url: str) -> BytesIO:
+    """Descarga una plantilla desde GitHub Raw y la devuelve como BytesIO."""
+    with urllib.request.urlopen(url, timeout=30) as resp:
+        return BytesIO(resp.read())
+
+# Mantener rutas locales como fallback (para desarrollo local)
+_HERE = os.path.dirname(os.path.abspath(__file__))
+MEDIA = os.path.join(_HERE, '..', 'media')
+TPL_S = os.path.join(MEDIA, 'plantilla_plano_santander.xlsm')
+TPL_B = os.path.join(MEDIA, 'plantilla_plano_bancolombia.xlsx')
 
 # ── Tipo de documento ────────────────────────────────────────────────────────
 # Santander usa el texto completo; Bancolombia usa el número entero
@@ -418,16 +435,28 @@ def aplicar_manuales(datos, manuales):
 #   K: Documento Autorizado @  (mismo valor para todos)
 #   L: Celular Beneficiario @  (del maestro CELULAR)
 
-# Leer los assets del drawing UNA VEZ al importar el módulo
-# (evita re-leer el zip en cada request)
-try:
-    with zipfile.ZipFile(TPL_S) as _ztpl:
-        _DRAWING_XML  = _ztpl.read('xl/drawings/drawing1.xml')
-        _DRAWING_RELS = _ztpl.read('xl/drawings/_rels/drawing1.xml.rels')
-        _LOGO_PNG     = _ztpl.read('xl/media/image1.png')
-        _SHEET1_RELS  = _ztpl.read('xl/worksheets/_rels/sheet1.xml.rels')
-except Exception:
-    _DRAWING_XML = _DRAWING_RELS = _LOGO_PNG = _SHEET1_RELS = None
+# ── Assets del drawing (logo + botón Santander) ──────────────────────────────
+# Se extraen de la plantilla descargada desde GitHub Raw en runtime.
+# _assets_cache evita re-descargar en cada request durante la misma sesión.
+_assets_cache: dict = {}
+
+def _cargar_assets_santander() -> None:
+    """
+    Descarga plantilla_plano_santander.xlsm desde GitHub Raw y extrae
+    los assets que openpyxl elimina al guardar: logo PNG y drawing XML
+    (botón rojo). Se ejecuta una sola vez y cachea el resultado.
+    """
+    if _assets_cache:
+        return  # ya cargados
+    try:
+        tpl_bytes = _descargar_plantilla(TPL_S_URL)
+        with zipfile.ZipFile(tpl_bytes) as z:
+            _assets_cache['drawing_xml']  = z.read('xl/drawings/drawing1.xml')
+            _assets_cache['drawing_rels'] = z.read('xl/drawings/_rels/drawing1.xml.rels')
+            _assets_cache['logo_png']     = z.read('xl/media/image1.png')
+            _assets_cache['sheet1_rels']  = z.read('xl/worksheets/_rels/sheet1.xml.rels')
+    except Exception:
+        pass  # fallback silencioso: el archivo se genera sin logo/botón
 
 
 def generar_santander(datos, referencia=''):
@@ -435,7 +464,10 @@ def generar_santander(datos, referencia=''):
     cons = datos.get('consecutivo', '')
     ref  = referencia or (f"Reembolso {cons}" if cons else "Reembolso")
 
-    wb = load_workbook(TPL_S, keep_vba=True)
+    # Cargar plantilla desde GitHub Raw (compatible con Vercel)
+    _cargar_assets_santander()  # asegura que los assets estén en caché
+    _tpl_s = _descargar_plantilla(TPL_S_URL) if not os.path.exists(TPL_S) else TPL_S
+    wb = load_workbook(_tpl_s, keep_vba=True)
     ws = wb['GENERAR ARCHIVO - GENERATE FILE']
 
     # Limpiar datos existentes desde fila 6 (cols A-L)
@@ -511,18 +543,18 @@ def generar_santander(datos, referencia=''):
     buf.seek(0)
 
     # ── Inyectar logo + botón originales (garantiza Vercel y cualquier env) ──
-    if _DRAWING_XML and _LOGO_PNG:
+    if _assets_cache.get('drawing_xml') and _assets_cache.get('logo_png'):
         buf2 = BytesIO()
         with zipfile.ZipFile(buf, 'r') as zin, \
              zipfile.ZipFile(buf2, 'w', zipfile.ZIP_DEFLATED) as zout:
             for item in zin.infolist():
                 name = item.filename
                 if name == 'xl/drawings/drawing1.xml':
-                    zout.writestr(item, _DRAWING_XML)
+                    zout.writestr(item, _assets_cache['drawing_xml'])
                 elif name == 'xl/drawings/_rels/drawing1.xml.rels':
-                    zout.writestr(item, _DRAWING_RELS)
+                    zout.writestr(item, _assets_cache['drawing_rels'])
                 elif name == 'xl/media/image1.png':
-                    zout.writestr(item, _LOGO_PNG)
+                    zout.writestr(item, _assets_cache['logo_png'])
                 else:
                     zout.writestr(item, zin.read(name))
         buf2.seek(0)
@@ -576,7 +608,9 @@ def generar_bancolombia(datos, hdr):
     else:
         fecha_int = int(datetime.today().strftime('%d%m%Y'))
 
-    wb = load_workbook(TPL_B)
+    # Cargar plantilla desde GitHub Raw (compatible con Vercel)
+    _tpl_b = _descargar_plantilla(TPL_B_URL) if not os.path.exists(TPL_B) else TPL_B
+    wb = load_workbook(_tpl_b)
     ws = wb['FORMATOPAB']
 
     # Limpiar datos desde fila 4

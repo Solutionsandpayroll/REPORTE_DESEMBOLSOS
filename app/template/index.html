@@ -1505,7 +1505,7 @@
             };
             poblarSelects();
             document.getElementById('modalPlt').classList.add('show');
-        } catch (e) { alerta('❌ ' + e.message, 'err'); }
+        } catch (e) { alerta(' ' + e.message, 'err'); }
         finally { sp.style.display = 'none'; btn.disabled = false; }
     }
 
@@ -1537,7 +1537,7 @@
         document.getElementById('modalPlt').classList.remove('show');
         if (datosServ.faltantes?.length > 0) {
             mostrarFaltantes(datosServ.faltantes);
-            alerta(`⚠️ ${datosServ.faltantes.length} empleado(s) sin datos bancarios. Completa el formulario.`, 'warn');
+            alerta(` ${datosServ.faltantes.length} empleado(s) sin datos bancarios. Completa el formulario.`, 'warn');
         } else {
             iniciarPreview(datosServ.registros);
         }
@@ -1602,10 +1602,10 @@
                 valor: emp.valor,
             };
         });
-        if (err.length) { alerta('❌ Falta N° de cuenta: ' + err.join(', '), 'err'); return; }
+        if (err.length) { alerta(' Falta N° de cuenta: ' + err.join(', '), 'err'); return; }
         document.getElementById('secFalt').style.display = 'none';
         iniciarPreview(aplicarManualJS(datosServ.registros, confFalt));
-        alerta('✅ Datos completados.', 'ok');
+        alerta(' Datos completados.', 'ok');
     }
 
     function saltarFalt() {
@@ -1865,8 +1865,8 @@
             const m = cd.match(/filename="(.+)"/);
             const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(blob), download: m ? m[1] : `${p}.xlsx` });
             a.click(); URL.revokeObjectURL(a.href);
-            alerta(`✅ Archivo ${p === 'santander' ? 'Santander' : 'Bancolombia PAB'} descargado correctamente.`, 'ok');
-        } catch (e) { alerta('❌ ' + e.message, 'err'); }
+            alerta(` Archivo ${p === 'santander' ? 'Santander' : 'Bancolombia PAB'} descargado correctamente.`, 'ok');
+        } catch (e) { alerta(' ' + e.message, 'err'); }
         finally { document.getElementById('loadov').classList.remove('show'); }
     }
 
