@@ -1432,7 +1432,7 @@
             };
             poblarSelects();
             document.getElementById('modalPlt').classList.add('show');
-        } catch (e) { lanzarAlerta('❌ ' + e.message); }
+        } catch (e) { lanzarAlerta(' ' + e.message); }
         finally { sp.style.display = 'none'; btn.disabled = false; }
     }
 
@@ -1464,7 +1464,7 @@
         document.getElementById('modalPlt').classList.remove('show');
         if (datosServ.faltantes?.length > 0) {
             mostrarFaltantes(datosServ.faltantes);
-            lanzarAlerta(`⚠️ ${datosServ.faltantes.length} empleado(s) sin datos bancarios. Completa el formulario.`, 'warning');
+            lanzarAlerta(` ${datosServ.faltantes.length} empleado(s) sin datos bancarios. Completa el formulario.`, 'warning');
         } else {
             iniciarPreview(datosServ.registros);
         }
@@ -1529,10 +1529,10 @@
                 valor: emp.valor,
             };
         });
-        if (err.length) { lanzarAlerta('❌ Falta N° de cuenta: ' + err.join(', ')); return; }
+        if (err.length) { lanzarAlerta(' Falta N° de cuenta: ' + err.join(', ')); return; }
         document.getElementById('secFalt').style.display = 'none';
         iniciarPreview(aplicarManualJS(datosServ.registros, confFalt));
-        lanzarAlerta('✅ Datos completados.', 'success');
+        lanzarAlerta(' Datos completados.', 'success');
     }
 
     function saltarFalt() {
@@ -1773,8 +1773,8 @@
             const m = cd.match(/filename="(.+)"/);
             const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(blob), download: m ? m[1] : `${p}.xlsx` });
             a.click(); URL.revokeObjectURL(a.href);
-            lanzarAlerta(`✅ Archivo ${p === 'santander' ? 'Santander' : 'Bancolombia PAB'} descargado correctamente.`, 'success');
-        } catch (e) { lanzarAlerta('❌ ' + e.message); }
+            lanzarAlerta(` Archivo ${p === 'santander' ? 'Santander' : 'Bancolombia PAB'} descargado correctamente.`, 'success');
+        } catch (e) { lanzarAlerta(' ' + e.message); }
         finally { document.getElementById('loadov').classList.remove('show'); }
     }
 
