@@ -191,7 +191,7 @@ def _buscar_banco(nombre):
         return '', None, ''
     n = str(nombre).strip().upper()
     for kw, sant, cod, nom_b in BANCOS:
-        if kw.upper() in n:
+        if kw.strip().upper() in n:
             return sant, cod, (nom_b or '')
     return str(nombre).strip(), None, ''
 
